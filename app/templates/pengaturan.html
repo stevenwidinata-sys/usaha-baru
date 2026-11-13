@@ -38,6 +38,22 @@
   </section>
 </div>
 
+<section class="kartu" id="password">
+  <h2>Ganti password</h2>
+  <form method="post" action="{{ url_for('auth.ganti_password') }}" class="form-grid" style="align-items:end">
+    <label class="isian">Password lama
+      <input class="field" type="password" name="lama" autocomplete="current-password" required>
+    </label>
+    <label class="isian">Password baru
+      <input class="field" type="password" name="password" autocomplete="new-password" minlength="8" required>
+    </label>
+    <label class="isian">Ulangi password baru
+      <input class="field" type="password" name="konfirmasi" autocomplete="new-password" minlength="8" required>
+    </label>
+    <button class="btn" type="submit">Ganti password</button>
+  </form>
+</section>
+
 <section class="kartu kartu-tabel" id="akun">
   <div class="kartu-kepala"><div><h2>Akun kas, bank &amp; e-wallet</h2>
     <p class="muted kecil" style="margin:4px 0 0">Tempat uang usaha disimpan. Penjualan non-tunai masuk ke akun bank/e-wallet.</p></div></div>

@@ -1,5 +1,6 @@
 """Koneksi SQLite dan inisialisasi skema."""
 import os
+import secrets
 import sqlite3
 
 from flask import current_app, g
@@ -87,9 +88,21 @@ def simpan_pengaturan(conn, kunci, nilai):
 
 
 def init_app(app):
+    """Siapkan database, kunci sesi yang tetap (supaya login tidak hilang saat server restart),
+    dan password awal dari variabel lingkungan USAHA_PASSWORD bila belum ada password."""
+    from werkzeug.security import generate_password_hash
+
     app.teardown_appcontext(close_db)
     conn = connect(app.config["DATABASE"])
     try:
         init_db(conn)
+        if not ambil_pengaturan(conn, "secret_key"):
+            simpan_pengaturan(conn, "secret_key", secrets.token_hex(32))
+        password_awal = os.environ.get("USAHA_PASSWORD")
+        if password_awal and not ambil_pengaturan(conn, "password_hash"):
+            simpan_pengaturan(conn, "password_hash", generate_password_hash(password_awal))
+        conn.commit()
+        if not app.config.get("SECRET_KEY"):
+            app.config["SECRET_KEY"] = ambil_pengaturan(conn, "secret_key")
     finally:
         conn.close()

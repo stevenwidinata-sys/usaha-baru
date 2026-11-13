@@ -74,6 +74,18 @@ h1, h2, h3 { margin: 0; }
   color: var(--side-muted); padding: 16px 14px 6px;
 }
 .nav-bawah { margin-top: auto; }
+.nav-tombol {
+  display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 14px; width: 100%;
+  border: 0; border-radius: 10px; background: none; color: var(--side-text); font: inherit; font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+}
+.nav-tombol:hover { background: var(--side-hover); color: #fff; }
+@media (max-width: 760px) { .nav-tombol { min-height: 40px; padding: 0 12px; } }
+
+/* Halaman masuk */
+.halaman-polos { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+.kotak-masuk { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px; }
+
 .nav-lencana {
   margin-left: auto; font-size: 11px; font-weight: 700; background: #B42318; color: #fff;
   border-radius: 999px; padding: 2px 7px; line-height: 1.3;

@@ -1,0 +1,28 @@
+{% from "_macros.html" import ikon %}
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block judul %}{% endblock %} · {{ nama_usaha }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="halaman-polos">
+  <main class="kotak-masuk">
+    <div class="brand" style="padding:0;justify-content:center">
+      <span class="brand-logo">{{ (nama_usaha.split()|map('first')|join)[:2]|upper }}</span>
+      <span class="brand-nama" style="color:var(--ink);font-size:20px">{{ nama_usaha }}</span>
+    </div>
+    {% with pesan = get_flashed_messages(with_categories=true) %}
+      {% for kategori, teks in pesan %}
+        <div class="pesan pesan-{{ kategori }}" role="status">{{ ikon('cek' if kategori == 'sukses' else 'peringatan') }}{{ teks }}</div>
+      {% endfor %}
+    {% endwith %}
+    <section class="kartu">
+      {% block isi %}{% endblock %}
+    </section>
+  </main>
+</body>
+</html>

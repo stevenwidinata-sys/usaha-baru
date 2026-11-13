@@ -1,10 +1,9 @@
 """Aplikasi pencatatan usaha: pembelian, stok, penjualan, dan laporan keuangan."""
 import os
-import secrets
 
 from flask import Flask
 
-from . import db, util
+from . import auth, db, util
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -12,14 +11,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_mapping(
-        SECRET_KEY=secrets.token_hex(16),
-        DATABASE=os.path.join(ROOT, "data", "usaha.db"),
+        SECRET_KEY=None,  # diambil dari database (dibuat sekali) supaya sesi login tetap berlaku
+        DATABASE=os.environ.get("USAHA_DATABASE") or os.path.join(ROOT, "data", "usaha.db"),
+        SESSION_COOKIE_SECURE=os.environ.get("USAHA_HTTPS") == "1",
     )
     if test_config:
         app.config.update(test_config)
     os.makedirs(os.path.dirname(app.config["DATABASE"]), exist_ok=True)
 
     db.init_app(app)
+    auth.init_app(app)
+    app.register_blueprint(auth.bp)
 
     app.jinja_env.filters.update(
         rp=util.rupiah,

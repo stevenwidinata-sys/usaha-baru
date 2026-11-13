@@ -1,0 +1,15 @@
+{% extends "polos.html" %}
+{% block judul %}Masuk{% endblock %}
+{% block isi %}
+<h1 style="font-size:22px">Masuk</h1>
+<form method="post" style="display:flex;flex-direction:column;gap:14px">
+  <label class="isian">Password
+    <input class="field" type="password" name="password" autocomplete="current-password" required autofocus>
+  </label>
+  <label class="isian isian-baris" style="font-weight:500">
+    <input type="checkbox" name="ingat" value="1" checked style="width:18px;height:18px">
+    Ingat saya di perangkat ini (30 hari)
+  </label>
+  <button class="btn btn-utama btn-besar" type="submit">Masuk</button>
+</form>
+{% endblock %}

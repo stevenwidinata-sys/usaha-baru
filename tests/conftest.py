@@ -14,7 +14,8 @@ def conn(tmp_path):
 
 @pytest.fixture
 def app(tmp_path):
-    return create_app({"DATABASE": str(tmp_path / "app.db"), "TESTING": True})
+    """Aplikasi tanpa login, untuk menguji fitur. Login diuji terpisah di test_auth.py."""
+    return create_app({"DATABASE": str(tmp_path / "app.db"), "TESTING": True, "LOGIN_DISABLED": True})
 
 
 @pytest.fixture

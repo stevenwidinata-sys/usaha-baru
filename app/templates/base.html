@@ -40,6 +40,11 @@
     </nav>
     <nav class="nav nav-bawah" aria-label="Lainnya">
       {{ menu('/pengaturan', 'pengaturan', 'Pengaturan & backup') }}
+      {% if session.get('masuk') %}
+      <form method="post" action="{{ url_for('auth.keluar') }}">
+        <button class="nav-tombol" type="submit">{{ ikon('keluar') }}Keluar</button>
+      </form>
+      {% endif %}
     </nav>
   </aside>
   <main class="main">
