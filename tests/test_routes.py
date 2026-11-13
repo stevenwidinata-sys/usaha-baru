@@ -27,7 +27,7 @@ HALAMAN = [
     "/penjualan/2/edit", "/biaya?bulan=2026-10", "/biaya/1/edit", "/modal", "/pindah-dana",
     "/laporan/laba-rugi?bulan=2026-10", "/laporan/laba-rugi?mode=tahunan&tahun=2026",
     "/laporan/arus-kas?bulan=2026-10", "/laporan/arus-kas?mode=tahunan&tahun=2026",
-    "/laporan/neraca?tanggal=2026-10-31", "/pengaturan",
+    "/laporan/neraca?tanggal=2026-10-31", "/pengaturan", "/hutang", "/hutang?semua=1",
 ]
 
 
@@ -81,6 +81,36 @@ def test_hapus_pembelian_yang_terjual_ditolak(client):
     isi_data(client)
     r = client.post("/pembelian/1/hapus", follow_redirects=True)
     assert "tidak bisa dihapus" in r.get_data(as_text=True)
+
+
+def test_alur_pembelian_tempo(client):
+    isi_data(client)
+    r = client.post("/pembelian/baru", data={
+        "tanggal": "2026-10-08", "pemasok": "UD Makmur", "no_faktur": "INV-77", "akun_id": "1",
+        "cara_bayar": "tempo", "jatuh_tempo": "2026-10-22", "uang_muka": "50.000",
+        "barang_id": ["2"], "qty": ["10"], "harga": ["33000"],
+    }, follow_redirects=True)
+    teks = r.get_data(as_text=True)
+    assert "Hutang tercatat" in teks
+    assert "Rp 280.000" in teks  # sisa hutang 330.000 - 50.000
+
+    teks = client.get("/hutang").get_data(as_text=True)
+    assert "INV-77" in teks and "UD Makmur" in teks
+
+    r = client.post("/hutang/2/bayar", data={"tanggal": "2026-10-20", "jumlah": "100000", "akun_id": "2"},
+                    follow_redirects=True)
+    assert "Sisa hutang Rp 180.000" in r.get_data(as_text=True)
+
+    teks = client.get("/laporan/neraca?tanggal=2026-10-31").get_data(as_text=True)
+    assert "Hutang usaha" in teks and "Rp 180.000" in teks and "Seimbang" in teks
+
+    r = client.post("/hutang/2/bayar", data={"tanggal": "2026-10-21", "jumlah": "999999", "akun_id": "1"},
+                    follow_redirects=True)
+    assert "melebihi sisa hutang" in r.get_data(as_text=True)
+
+    client.post("/hutang/2/bayar", data={"tanggal": "2026-10-21", "jumlah": "180000", "akun_id": "1"})
+    assert "Tidak ada hutang" in client.get("/hutang").get_data(as_text=True)
+    assert client.get("/pembelian/2").status_code == 200
 
 
 def test_pindah_dana_dan_backup(client):
