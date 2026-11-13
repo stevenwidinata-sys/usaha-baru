@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon %}
+{% block judul %}Penjualan {{ pj.no_nota }}{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <a class="kembali" href="{{ url_for('penjualan.daftar', bulan=pj.tanggal[:7]) }}">← Kembali ke daftar penjualan</a>
+    <h1>Penjualan {{ pj.no_nota }}</h1>
+    <p>{{ pj.tanggal|tgl_panjang }} · {{ pj.pelanggan or 'Pelanggan umum' }}</p>
+  </div>
+  <div class="aksi">
+    <button class="btn" type="button" onclick="window.print()">{{ ikon('cetak') }}Cetak nota</button>
+    <a class="btn" href="{{ url_for('penjualan.edit', penjualan_id=pj.id) }}">{{ ikon('edit') }}Edit</a>
+    <form method="post" action="{{ url_for('penjualan.hapus', penjualan_id=pj.id) }}" onsubmit="return confirm('Hapus penjualan {{ pj.no_nota }}? Stok akan dikembalikan.')">
+      <button class="btn btn-bahaya" type="submit">{{ ikon('hapus') }}Hapus</button>
+    </form>
+  </div>
+</div>
+
+<div class="baris-kartu">
+  <section class="kartu kartu-tabel lebar-2">
+    <div class="gulir">
+      <table class="tabel">
+        <thead><tr><th>Barang</th><th class="kanan">Jumlah</th><th class="kanan">Harga</th><th class="kanan">Subtotal</th><th class="kanan no-print">Modal (HPP)</th><th class="kanan no-print">Laba kotor</th></tr></thead>
+        <tbody>
+        {% for i in items %}
+          <tr>
+            <td><a href="{{ url_for('barang.kartu', barang_id=i.barang_id, bulan=pj.tanggal[:7]) }}" style="color:inherit">{{ i.nama }}</a></td>
+            <td class="kanan">{{ i.qty|angka }} {{ i.satuan }}</td>
+            <td class="kanan">{{ i.harga_jual|rp }}</td>
+            <td class="kanan tebal">{{ (i.qty * i.harga_jual)|rp }}</td>
+            <td class="kanan muted no-print">{{ (i.qty * i.hpp_satuan)|rp }}</td>
+            <td class="kanan hijau no-print">{{ (i.qty * (i.harga_jual - i.hpp_satuan))|rp }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="kartu lebar-1">
+    <h2>Pembayaran</h2>
+    <div class="ringkasan-baris"><span class="muted">Subtotal</span><span class="angka">{{ pj.subtotal|rp }}</span></div>
+    <div class="ringkasan-baris"><span class="muted">Diskon</span><span class="angka">{{ ('−' ~ (pj.diskon|rp)) if pj.diskon else 'Rp 0' }}</span></div>
+    <div class="ringkasan-total"><span class="tebal">Total</span><span class="angka">{{ pj.total|rp }}</span></div>
+    <div class="ringkasan-baris"><span class="muted">Metode</span><span class="tebal">{{ pj.metode_bayar|metode }}</span></div>
+    <div class="ringkasan-baris"><span class="muted">Masuk ke</span><span>{{ pj.akun }}</span></div>
+    {% if pj.no_referensi %}<div class="ringkasan-baris"><span class="muted">No. referensi</span><span>{{ pj.no_referensi }}</span></div>{% endif %}
+    {% if pj.biaya_admin %}<div class="ringkasan-baris"><span class="muted">Potongan admin</span><span class="angka">{{ pj.biaya_admin|rp }}</span></div>{% endif %}
+    <div class="kotak-laba no-print">
+      <div class="ringkasan-baris kecil"><span>Modal barang (HPP)</span><span class="angka">{{ pj.hpp|rp }}</span></div>
+      <div class="ringkasan-baris"><span>Laba kotor</span><span class="angka">{{ pj.laba_kotor|rp }}</span></div>
+    </div>
+    {% if pj.catatan %}<p class="muted" style="margin:0">Catatan: {{ pj.catatan }}</p>{% endif %}
+  </aside>
+</div>
+{% endblock %}

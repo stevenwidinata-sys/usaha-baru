@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon %}
+{% from "_baris_item.html" import baris_item %}
+{% block judul %}{{ 'Edit penjualan' if penjualan else 'Penjualan baru' }}{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <a class="kembali" href="{{ url_for('penjualan.daftar') }}">← Kembali ke daftar penjualan</a>
+    <h1>{{ 'Edit penjualan' if penjualan else 'Penjualan baru' }}</h1>
+  </div>
+  <span class="lencana l-abu" style="font-size:13px;padding:8px 12px;border-radius:10px">No. nota {{ no_nota }}</span>
+</div>
+
+{% if not barang %}
+<div class="pesan pesan-info">{{ ikon('peringatan') }}Belum ada barang. <a href="{{ url_for('barang.baru') }}">Tambah barang dulu</a>.</div>
+{% endif %}
+
+<form method="post" id="form-transaksi" data-mode="jual" class="baris-kartu">
+  <div class="lebar-2" style="display:flex;flex-direction:column;gap:16px;min-width:0">
+    <section class="kartu">
+      <div class="form-grid">
+        <label class="isian">Tanggal
+          <input class="field" type="date" name="tanggal" value="{{ data.tanggal }}" required>
+        </label>
+        <label class="isian">Pelanggan (opsional)
+          <input class="field" name="pelanggan" value="{{ data.pelanggan or '' }}" placeholder="Contoh: Bu Sari">
+        </label>
+      </div>
+    </section>
+
+    <section class="kartu kartu-tabel">
+      <div class="kartu-kepala"><h2>Barang</h2>
+        <button class="btn btn-kecil" type="button" id="tambah-baris">{{ ikon('tambah', 16) }}Tambah baris</button>
+      </div>
+      <div class="gulir">
+        <table class="tabel">
+          <thead><tr><th>Barang</th><th class="tengah">Jumlah</th><th>Harga jual</th><th class="kanan">Subtotal</th><th><span class="tersembunyi">Hapus</span></th></tr></thead>
+          <tbody id="baris-item">
+            {% for it in items %}{{ baris_item(it, barang, 'jual') }}{% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="pad petunjuk" style="margin:0;padding-bottom:12px">Jumlah tidak bisa melebihi sisa stok. Harga jual bisa diubah per transaksi.</p>
+    </section>
+  </div>
+
+  <aside class="kartu lebar-1">
+    <h2>Ringkasan</h2>
+    <div class="ringkasan-baris"><span class="muted">Subtotal (<span id="jumlah-item">0</span> item)</span><span class="angka" id="subtotal">Rp 0</span></div>
+    <label class="isian isian-baris" style="justify-content:space-between">Diskon (Rp)
+      <input class="field" id="diskon" name="diskon" inputmode="numeric" value="{{ data.diskon or '' }}" placeholder="0" style="max-width:140px;text-align:right">
+    </label>
+    <div class="ringkasan-total"><span class="tebal">Total</span><span class="angka" id="total">Rp 0</span></div>
+
+    <fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px">
+      <legend class="isian" style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:8px">Metode pembayaran</legend>
+      <div class="metode-grid">
+        {% for kode, label in metode_bayar.items() %}
+        <label class="metode">
+          <input type="radio" name="metode_bayar" value="{{ kode }}" {% if data.metode_bayar == kode %}checked{% endif %}>
+          {{ ikon(kode, 16) }}{{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div id="bagian-tunai" style="display:flex;flex-direction:column;gap:8px">
+      {% if akun_tunai|length > 1 %}
+      <label class="isian">Masuk ke
+        <select class="field" name="akun_tunai">
+          {% for a in akun_tunai %}<option value="{{ a.id }}" {% if data.akun_id == a.id %}selected{% endif %}>{{ a.nama }}</option>{% endfor %}
+        </select>
+      </label>
+      {% elif akun_tunai %}
+      <input type="hidden" name="akun_tunai" value="{{ akun_tunai[0].id }}">
+      {% endif %}
+      <label class="isian">Uang diterima
+        <input class="field" id="diterima" inputmode="numeric" placeholder="0">
+      </label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="pil" type="button" data-bayar="pas">Uang pas</button>
+        <button class="pil" type="button" data-bayar="50000">Rp 50.000</button>
+        <button class="pil" type="button" data-bayar="100000">Rp 100.000</button>
+      </div>
+      <div class="ringkasan-baris"><span class="muted">Kembalian</span><span class="angka tebal" id="kembalian">–</span></div>
+      {% if akun_tunai|length == 1 %}<span class="petunjuk">Masuk ke: {{ akun_tunai[0].nama }}</span>{% endif %}
+    </div>
+
+    <div id="bagian-nontunai" class="tersembunyi" style="display:flex;flex-direction:column;gap:10px">
+      <label class="isian">Masuk ke akun
+        <select class="field" id="akun_nontunai" name="akun_nontunai">
+          {% for a in akun_nontunai %}<option value="{{ a.id }}" data-jenis="{{ a.jenis }}" {% if data.akun_id == a.id %}selected{% endif %}>{{ a.nama }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="isian">No. referensi (opsional)
+        <input class="field" id="no_referensi" name="no_referensi" value="{{ data.no_referensi or '' }}">
+      </label>
+      <label class="isian">Potongan biaya admin (opsional)
+        <input class="field" name="biaya_admin" inputmode="numeric" value="{{ data.biaya_admin or '' }}" placeholder="Rp 0">
+        <span class="petunjuk">Dicatat otomatis sebagai biaya "Biaya admin pembayaran".</span>
+      </label>
+    </div>
+
+    <div class="kotak-laba">
+      <div class="ringkasan-baris kecil"><span>Modal barang (HPP)</span><span class="angka" id="hpp">Rp 0</span></div>
+      <div class="ringkasan-baris"><span>Perkiraan laba kotor</span><span class="angka" id="laba">Rp 0</span></div>
+    </div>
+
+    <label class="isian">Catatan (opsional)
+      <input class="field" name="catatan" value="{{ data.catatan or '' }}">
+    </label>
+
+    <button class="btn btn-utama btn-besar" type="submit">Simpan penjualan</button>
+    {% if not penjualan %}<button class="btn" type="submit" name="lanjut" value="1">Simpan &amp; buat penjualan baru</button>{% endif %}
+    <a class="btn" href="{{ url_for('penjualan.detail', penjualan_id=penjualan.id) if penjualan else url_for('penjualan.daftar') }}">Batal</a>
+  </aside>
+</form>
+
+<template id="tpl-baris">{{ baris_item({'barang_id': None, 'qty': 1, 'harga': ''}, barang, 'jual') }}</template>
+{% endblock %}
+{% block skrip %}<script src="{{ url_for('static', filename='transaksi.js') }}"></script>{% endblock %}

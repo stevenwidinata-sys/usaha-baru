@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, pilih_bulan %}
+{% block judul %}Penjualan{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Penjualan</h1>
+    <p>{{ bulan|bulan_label }} · {{ rows|length }} transaksi</p>
+  </div>
+  <div class="aksi">
+    {{ pilih_bulan(bulan, pilihan_bulan) }}
+    <a class="btn btn-utama" href="{{ url_for('penjualan.baru') }}">{{ ikon('tambah') }}Penjualan baru</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-label">Total penjualan bersih</span><span class="kpi-nilai">{{ total|rp }}</span></div>
+  <div class="kpi"><span class="kpi-label">Laba kotor</span><span class="kpi-nilai hijau">{{ laba_kotor|rp }}</span></div>
+  {% for kode, nilai in per_metode.items() %}
+  <div class="kpi"><span class="kpi-label">{{ kode|metode }}</span><span class="kpi-nilai">{{ nilai|rp }}</span></div>
+  {% endfor %}
+</div>
+
+<section class="kartu kartu-tabel">
+  <div class="gulir">
+    <table class="tabel">
+      <thead><tr><th>Tanggal</th><th>No. nota</th><th>Pelanggan</th><th>Metode</th><th class="kanan">Barang</th><th class="kanan">Total</th><th class="kanan">Laba kotor</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr class="klik">
+          <td>{{ r.tanggal|tgl }}</td>
+          <td><a href="{{ url_for('penjualan.detail', penjualan_id=r.id) }}" class="tebal">{{ r.no_nota }}</a></td>
+          <td>{{ r.pelanggan or 'Umum' }}</td>
+          <td><span class="lencana {{ 'l-hijau' if r.metode_bayar == 'tunai' else 'l-biru' }}">{{ r.metode_bayar|metode }}</span></td>
+          <td class="kanan">{{ r.jumlah_barang|angka }}</td>
+          <td class="kanan tebal">{{ r.total|rp }}</td>
+          <td class="kanan {{ 'merah' if r.laba_kotor < 0 else 'hijau' }}">{{ r.laba_kotor|rp }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="kosong">Belum ada penjualan di bulan ini.</td></tr>
+      {% endfor %}
+      </tbody>
+      {% if rows %}<tfoot><tr><td>Total</td><td></td><td></td><td></td><td></td><td class="kanan">{{ total|rp }}</td><td class="kanan">{{ laba_kotor|rp }}</td></tr></tfoot>{% endif %}
+    </table>
+  </div>
+</section>
+{% endblock %}
