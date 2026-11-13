@@ -77,6 +77,20 @@ def test_password_awal_dari_variabel_lingkungan(tmp_path, monkeypatch):
     assert c.get("/").status_code == 200
 
 
+def test_database_diganti_tanpa_password_tetap_terkunci(tmp_path, monkeypatch):
+    monkeypatch.setenv("USAHA_PASSWORD", "dari-env-123")
+    app = create_app({"DATABASE": str(tmp_path / "g.db"), "TESTING": True})
+    from app.db import connect
+    conn = connect(app.config["DATABASE"])
+    conn.execute("DELETE FROM pengaturan WHERE kunci = 'password_hash'")  # seperti upload database lama
+    conn.commit()
+    conn.close()
+    c = app.test_client()
+    assert "/masuk" in c.get("/").headers["Location"]
+    assert c.get("/buat-password").status_code == 302
+    assert c.post("/masuk", data={"password": "dari-env-123"}).status_code == 302
+
+
 def test_kunci_sesi_tetap_setelah_restart(tmp_path, monkeypatch):
     monkeypatch.delenv("USAHA_PASSWORD", raising=False)
     db = str(tmp_path / "s.db")

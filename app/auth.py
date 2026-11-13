@@ -4,6 +4,7 @@ Password disimpan sebagai hash di tabel pengaturan. Bila belum ada password:
 - dipakai variabel lingkungan USAHA_PASSWORD (untuk hosting, supaya tidak ada celah sebelum password dibuat), atau
 - pengguna diarahkan ke halaman "Buat password" (untuk pemakaian pertama di laptop).
 """
+import os
 import time
 from datetime import timedelta
 
@@ -19,7 +20,17 @@ BEBAS_LOGIN = {"auth.masuk", "auth.buat_password", "static", "pwa.manifest", "pw
 
 
 def ada_password(conn):
-    return bool(ambil_pengaturan(conn, "password_hash", ""))
+    """True bila password sudah ada. Bila belum tapi USAHA_PASSWORD diisi (di hosting), password itu dipasang
+    saat itu juga, sehingga halaman "Buat password" tidak pernah terbuka untuk umum, termasuk setelah
+    file database diganti dengan hasil upload."""
+    if ambil_pengaturan(conn, "password_hash", ""):
+        return True
+    awal = os.environ.get("USAHA_PASSWORD")
+    if awal:
+        set_password(conn, awal)
+        conn.commit()
+        return True
+    return False
 
 
 def set_password(conn, password):
