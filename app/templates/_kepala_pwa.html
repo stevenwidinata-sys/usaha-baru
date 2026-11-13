@@ -1,0 +1,13 @@
+<link rel="manifest" href="{{ url_for('pwa.manifest') }}">
+  <meta name="theme-color" content="#10231C">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="{{ nama_usaha }}">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='ikon/favicon-32.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='ikon/apple-touch-icon.png') }}">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
+    }
+  </script>
