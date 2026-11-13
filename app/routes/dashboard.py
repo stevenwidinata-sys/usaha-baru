@@ -83,4 +83,5 @@ def index():
         satuan=satuan,
         terakhir=conn.execute(SQL_TERAKHIR).fetchall(),
         kosong=kosong,
+        hutang=reports.ringkasan_hutang(reports.daftar_hutang(conn)),
     )

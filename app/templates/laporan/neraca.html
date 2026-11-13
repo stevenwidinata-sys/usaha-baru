@@ -18,7 +18,7 @@
 </form>
 
 {% if data.seimbang %}
-<div class="pesan pesan-sukses">{{ ikon('cek') }}Seimbang: total aset sama dengan total modal ({{ data.total_aset|rp }})</div>
+<div class="pesan pesan-sukses">{{ ikon('cek') }}Seimbang: total aset sama dengan kewajiban + modal ({{ data.total_aset|rp }})</div>
 {% else %}
 <div class="pesan pesan-galat">{{ ikon('peringatan') }}Tidak seimbang, selisih {{ data.selisih|rp }}. Periksa data transaksi.</div>
 {% endif %}
@@ -38,15 +38,21 @@
     <div class="lb lb-total" style="margin-top:auto;font-weight:700;font-size:16px;padding-top:14px"><span>Total aset</span><span>{{ data.total_aset|rp }}</span></div>
   </section>
   <section class="kartu laporan lebar-1" style="flex-basis:380px">
-    <div class="laporan-kop"><span class="judul">Modal pemilik</span></div>
+    <div class="laporan-kop"><span class="judul">Kewajiban &amp; modal</span></div>
+    <div class="lb-kepala">Kewajiban</div>
+    <div class="lb"><span>Hutang usaha <span class="muted kecil">(pembelian tempo)</span></span>
+      <span>{% if data.hutang %}<a href="{{ url_for('hutang.daftar') }}" style="color:inherit">{{ data.hutang|rp }}</a>{% else %}{{ data.hutang|rp }}{% endif %}</span></div>
+    <div class="lb lb-total"><span>Total kewajiban</span><span>{{ data.hutang|rp }}</span></div>
+    <div class="lb-kepala">Modal pemilik</div>
     <div class="lb" style="font-weight:600"><span>Modal disetor</span><span>{{ data.modal_disetor|rp }}</span></div>
     <div class="lb lb-sub"><span>Setoran uang</span><span>{{ data.setoran|rp }}</span></div>
     <div class="lb lb-sub"><span>Stok awal</span><span>{{ data.stok_awal|rp }}</span></div>
     {% if data.laba_lalu %}<div class="lb"><span>Laba tahun-tahun sebelumnya</span><span>{{ data.laba_lalu|rp }}</span></div>{% endif %}
     <div class="lb"><span>Laba bersih {{ per[:4] }} (s.d. {{ per|tgl }})</span><span>{{ data.laba_berjalan|rp }}</span></div>
     <div class="lb"><span>Prive (diambil pemilik)</span><span>{{ data.prive|rpk }}</span></div>
-    <div class="lb lb-total" style="margin-top:auto;font-weight:700;font-size:16px;padding-top:14px"><span>Total modal</span><span>{{ data.total_modal|rp }}</span></div>
+    <div class="lb lb-total"><span>Total modal</span><span>{{ data.total_modal|rp }}</span></div>
+    <div class="lb lb-total" style="margin-top:auto;font-weight:700;font-size:16px;padding-top:14px"><span>Total kewajiban + modal</span><span>{{ data.total_pasiva|rp }}</span></div>
   </section>
 </div>
-<p class="petunjuk" style="margin:0">Neraca sederhana: belum ada hutang/piutang karena semua transaksi dicatat lunas.</p>
+<p class="petunjuk" style="margin:0">Neraca sederhana: belum ada piutang karena semua penjualan dicatat lunas.</p>
 {% endblock %}

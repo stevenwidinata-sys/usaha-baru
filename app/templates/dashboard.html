@@ -30,6 +30,16 @@
 </section>
 {% endif %}
 
+{% if hutang.telat.faktur %}
+<div class="pesan pesan-galat">{{ ikon('peringatan') }}
+  <span>{{ hutang.telat.faktur }} hutang pemasok lewat jatuh tempo, total {{ hutang.telat.jumlah|rp }}. <a href="{{ url_for('hutang.daftar') }}">Lihat &amp; bayar</a></span>
+</div>
+{% elif hutang.dekat.faktur %}
+<div class="pesan pesan-info">{{ ikon('peringatan') }}
+  <span>{{ hutang.dekat.faktur }} hutang pemasok jatuh tempo dalam 7 hari, total {{ hutang.dekat.jumlah|rp }}. <a href="{{ url_for('hutang.daftar') }}">Lihat hutang</a></span>
+</div>
+{% endif %}
+
 <div class="kpi-grid">
   <div class="kpi"><span class="kpi-label">Penjualan bersih</span><span class="kpi-nilai">{{ lr.penjualan_bersih|rp }}</span>{{ ubah(ubah_jual, nama_lalu) }}</div>
   <div class="kpi"><span class="kpi-label">Laba bersih</span><span class="kpi-nilai {{ 'hijau' if lr.laba_bersih >= 0 else 'merah' }}">{{ lr.laba_bersih|rp }}</span>{{ ubah(ubah_laba, nama_lalu) }}</div>
@@ -38,6 +48,10 @@
   <div class="kpi"><span class="kpi-label">Saldo kas &amp; bank</span><span class="kpi-nilai">{{ total_kas|rp }}</span>
     <span class="kpi-ket">{% for a in akun %}{{ a.nama }} {{ a.saldo|rp }}{{ ' · ' if not loop.last }}{% endfor %}</span></div>
   <div class="kpi"><span class="kpi-label">Nilai persediaan</span><span class="kpi-nilai">{{ persediaan|rp }}</span><span class="kpi-ket">{{ jumlah_barang }} jenis barang · per {{ per|tgl }}</span></div>
+  {% if hutang.total %}
+  <div class="kpi"><span class="kpi-label">Hutang pemasok</span><span class="kpi-nilai {{ 'merah' if hutang.telat.faktur else 'oranye' }}">{{ hutang.total|rp }}</span>
+    <span class="kpi-ket"><a href="{{ url_for('hutang.daftar') }}">{{ hutang.faktur }} faktur belum lunas</a></span></div>
+  {% endif %}
 </div>
 
 <div class="baris-kartu rentang">

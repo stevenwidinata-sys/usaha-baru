@@ -106,12 +106,14 @@ def neraca():
         baris += [
             ["Aset: Persediaan barang", data["persediaan"]],
             ["Total aset", data["total_aset"]],
+            ["Kewajiban: Hutang usaha", data["hutang"]],
             ["Modal: Setoran uang", data["setoran"]],
             ["Modal: Stok awal", data["stok_awal"]],
             ["Modal: Laba tahun-tahun sebelumnya", data["laba_lalu"]],
             ["Modal: Laba tahun berjalan", data["laba_berjalan"]],
             ["Modal: Prive", -data["prive"]],
             ["Total modal", data["total_modal"]],
+            ["Total kewajiban + modal", data["total_pasiva"]],
         ]
         return respons_csv(f"neraca-{per}.csv", ["Pos", "Jumlah (Rp)"], baris)
     return render_template("laporan/neraca.html", data=data, per=per)
