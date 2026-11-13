@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, pilih_bulan %}
+{% block judul %}Dashboard{% endblock %}
+{% macro ubah(x, nama_lalu) -%}
+{% if x is none %}<span class="kpi-ket">Belum ada data {{ nama_lalu }}</span>
+{% else %}<span class="kpi-ket tebal {{ 'hijau' if x >= 0 else 'merah' }}">{{ '+' if x >= 0 else '' }}{{ ('%.1f%%'|format(x * 100))|replace('.', ',') }} dari {{ nama_lalu }}</span>{% endif %}
+{%- endmacro %}
+{% block isi %}
+{% set nama_lalu = lalu.mulai[:7]|bulan_label %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Dashboard</h1>
+    <p>Ringkasan usaha bulan {{ bulan|bulan_label }}</p>
+  </div>
+  <div class="aksi">
+    {{ pilih_bulan(bulan, pilihan_bulan) }}
+    <a class="btn btn-utama" href="{{ url_for('penjualan.baru') }}">{{ ikon('tambah') }}Penjualan baru</a>
+  </div>
+</div>
+
+{% if kosong %}
+<section class="kartu" style="border-color:#BFDCCD;background:#F6FBF8">
+  <h2>Mulai pakai {{ nama_usaha }}</h2>
+  <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
+    <li><a href="{{ url_for('pengaturan.index') }}">Isi nama usaha dan cek daftar akun</a> (kas tunai, rekening bank, e-wallet).</li>
+    <li><a href="{{ url_for('kas.modal') }}">Catat saldo awal tiap akun</a> sebagai setoran modal.</li>
+    <li><a href="{{ url_for('barang.baru') }}">Tambah barang</a>, sekalian isi stok awal bila barangnya sudah ada.</li>
+    <li>Catat <a href="{{ url_for('pembelian.baru') }}">pembelian</a> dan <a href="{{ url_for('penjualan.baru') }}">penjualan</a> sehari-hari. Laporan terisi otomatis.</li>
+  </ol>
+</section>
+{% endif %}
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-label">Penjualan bersih</span><span class="kpi-nilai">{{ lr.penjualan_bersih|rp }}</span>{{ ubah(ubah_jual, nama_lalu) }}</div>
+  <div class="kpi"><span class="kpi-label">Laba bersih</span><span class="kpi-nilai {{ 'hijau' if lr.laba_bersih >= 0 else 'merah' }}">{{ lr.laba_bersih|rp }}</span>{{ ubah(ubah_laba, nama_lalu) }}</div>
+  <div class="kpi"><span class="kpi-label">Biaya operasional</span><span class="kpi-nilai">{{ lr.total_biaya|rp }}</span>
+    <span class="kpi-ket">{% if lr.penjualan_bersih %}{{ ('%.1f%%'|format(lr.total_biaya / lr.penjualan_bersih * 100))|replace('.', ',') }} dari penjualan{% else %}&nbsp;{% endif %}</span></div>
+  <div class="kpi"><span class="kpi-label">Saldo kas &amp; bank</span><span class="kpi-nilai">{{ total_kas|rp }}</span>
+    <span class="kpi-ket">{% for a in akun %}{{ a.nama }} {{ a.saldo|rp }}{{ ' · ' if not loop.last }}{% endfor %}</span></div>
+  <div class="kpi"><span class="kpi-label">Nilai persediaan</span><span class="kpi-nilai">{{ persediaan|rp }}</span><span class="kpi-ket">{{ jumlah_barang }} jenis barang · per {{ per|tgl }}</span></div>
+</div>
+
+<div class="baris-kartu rentang">
+  <section class="kartu lebar-2">
+    <div class="kartu-kepala">
+      <h2>Laba bersih per bulan, {{ bulan[:4] }}</h2>
+      <a class="kecil tebal" href="{{ url_for('laporan.laba_rugi', mode='tahunan', tahun=bulan[:4]) }}">Lihat laporan tahunan</a>
+    </div>
+    <div class="gulir">
+      <div class="grafik">
+        {% for g in grafik %}
+        <a class="grafik-kolom" href="{{ url_for('dashboard.index', bulan=g.ym) }}" style="text-decoration:none" aria-label="{{ g.label }}: {{ g.teks }}">
+          <span class="{{ 'tebal' if g.ini }}" style="{{ 'color:var(--ink)' if g.ini }}">{{ g.teks }}</span>
+          <div class="grafik-batang {{ 'ini' if g.ini and not g.minus }} {{ 'minus' if g.minus }} {{ 'nol' if not g.ada }}" style="height: {{ g.tinggi }}px"></div>
+        </a>
+        {% endfor %}
+      </div>
+      <div class="grafik-label">
+        {% for g in grafik %}<span class="{{ 'tebal' if g.ini }}" style="{{ 'color:var(--ink)' if g.ini }}">{{ g.label }}</span>{% endfor %}
+      </div>
+    </div>
+    <p class="petunjuk" style="margin:0">Angka dalam {{ satuan }}. Klik batang untuk melihat bulan itu.</p>
+  </section>
+
+  <section class="kartu lebar-1">
+    <div class="kartu-kepala">
+      <h2>Stok perlu diisi</h2>
+      <a class="kecil tebal" href="{{ url_for('barang.daftar', f='isi') }}">Semua ({{ jumlah_perlu_isi }})</a>
+    </div>
+    {% for b in perlu_isi %}
+    <div class="stok-item {{ b.status }}">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="{{ url_for('barang.kartu', barang_id=b.id) }}" class="tebal" style="color:inherit;text-decoration:none">{{ b.nama }}</a>
+        <span class="kecil muted">Minimum {{ b.stok_minimum }} {{ b.satuan }}</span>
+      </div>
+      {% if b.status == 'habis' %}<span class="lencana l-merah">Habis</span>{% else %}<span class="lencana l-oranye">Sisa {{ b.stok }}</span>{% endif %}
+    </div>
+    {% else %}
+    <p class="muted" style="margin:0">Semua stok aman.</p>
+    {% endfor %}
+    <a class="btn" style="margin-top:auto" href="{{ url_for('pembelian.baru') }}">Catat pembelian</a>
+  </section>
+</div>
+
+<section class="kartu kartu-tabel">
+  <div class="kartu-kepala"><h2>Transaksi terakhir</h2></div>
+  <div class="gulir">
+    <table class="tabel">
+      <thead><tr><th>Tanggal</th><th>No.</th><th>Jenis</th><th>Keterangan</th><th class="kanan">Jumlah</th></tr></thead>
+      <tbody>
+      {% set warna = {'penjualan': 'l-hijau', 'pembelian': 'l-biru', 'biaya': 'l-oranye', 'setoran': 'l-hijau', 'prive': 'l-abu'} %}
+      {% set nama_jenis = {'penjualan': 'Penjualan', 'pembelian': 'Pembelian', 'biaya': 'Biaya', 'setoran': 'Setoran modal', 'prive': 'Prive'} %}
+      {% for t in terakhir %}
+        <tr>
+          <td>{{ t.tanggal|tgl }}</td>
+          <td>
+            {% if t.jenis == 'penjualan' %}<a href="{{ url_for('penjualan.detail', penjualan_id=t.id) }}">{{ t.nomor }}</a>
+            {% elif t.jenis == 'pembelian' %}<a href="{{ url_for('pembelian.detail', pembelian_id=t.id) }}">{{ t.nomor }}</a>
+            {% else %}<span class="muted">{{ t.nomor }}</span>{% endif %}
+          </td>
+          <td><span class="lencana {{ warna[t.jenis] }}">{{ nama_jenis[t.jenis] }}</span></td>
+          <td class="wrap-teks">{{ t.ket }}{% if t.metode %} · {{ t.metode|metode }}{% endif %}</td>
+          <td class="kanan tebal">{{ '+ ' if t.jumlah >= 0 else '− ' }}{{ t.jumlah|abs|rp }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="kosong">Belum ada transaksi.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
