@@ -1,0 +1,2 @@
+"""Daftar blueprint halaman."""
+BLUEPRINTS = []
