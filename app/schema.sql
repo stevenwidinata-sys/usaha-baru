@@ -117,11 +117,11 @@ CREATE TABLE IF NOT EXISTS mutasi_stok (
     keterangan TEXT,
     masuk INTEGER NOT NULL DEFAULT 0,
     keluar INTEGER NOT NULL DEFAULT 0,
-    harga REAL NOT NULL,           -- harga per satuan mutasi ini
-    nilai_mutasi REAL NOT NULL,    -- qty x harga (selalu positif)
+    harga REAL NOT NULL,              -- harga per satuan mutasi ini
+    nilai_mutasi INTEGER NOT NULL,    -- nilai rupiah mutasi (selalu positif)
     saldo_qty INTEGER NOT NULL,
-    hpp_rata REAL NOT NULL,
-    nilai_persediaan REAL NOT NULL
+    hpp_rata REAL NOT NULL,           -- nilai_persediaan / saldo_qty
+    nilai_persediaan INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_mutasi_barang ON mutasi_stok (barang_id, urut);

@@ -66,29 +66,40 @@ def recalc_barang(conn, barang_id):
     nama = row["nama"]
     conn.execute("DELETE FROM mutasi_stok WHERE barang_id = ?", (barang_id,))
 
-    saldo, hpp = 0, 0.0
+    # Nilai persediaan disimpan dalam rupiah bulat agar laporan (HPP, persediaan, neraca) selalu
+    # seimbang tanpa selisih pembulatan. HPP rata-rata = nilai / saldo.
+    saldo, nilai, hpp = 0, 0, 0.0
     for urut, e in enumerate(_kejadian(conn, barang_id), start=1):
         qty = e["qty"]
         if qty > 0:
             harga = hpp if e["sumber"] == "opname" else float(e["harga"])
-            hpp = (saldo * hpp + qty * harga) / (saldo + qty)
+            nilai_mutasi = round(qty * harga)
             saldo += qty
+            nilai += nilai_mutasi
+            hpp = nilai / saldo
             masuk, keluar = qty, 0
         else:
             keluar = -qty
             if keluar > saldo:
                 raise StokTidakCukup(nama, e["tanggal"], saldo, keluar)
             harga = hpp
+            # Barang terakhir membawa seluruh sisa nilai, supaya stok nol bernilai nol.
+            nilai_mutasi = nilai if keluar == saldo else round(keluar * hpp)
             saldo -= keluar
+            nilai -= nilai_mutasi
+            if saldo:
+                hpp = nilai / saldo
             masuk = 0
             if e["sumber"] == "penjualan":
-                conn.execute("UPDATE penjualan_item SET hpp_satuan = ? WHERE id = ?", (hpp, e["item_id"]))
+                conn.execute(
+                    "UPDATE penjualan_item SET hpp_satuan = ? WHERE id = ?", (nilai_mutasi / keluar, e["item_id"])
+                )
         conn.execute(
             "INSERT INTO mutasi_stok (barang_id, urut, tanggal, sumber, ref_id, keterangan, masuk, keluar, "
             "harga, nilai_mutasi, saldo_qty, hpp_rata, nilai_persediaan) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (barang_id, urut, e["tanggal"], e["sumber"], e["ref_id"], e["ket"], masuk, keluar,
-             harga, abs(qty) * harga, saldo, hpp, saldo * hpp),
+             harga, nilai_mutasi, saldo, hpp, nilai),
         )
 
 
