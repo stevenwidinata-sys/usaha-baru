@@ -1,4 +1,13 @@
 """Daftar blueprint halaman."""
-from . import barang, dashboard, kas, laporan, pembelian, penjualan, stok
+from . import barang, dashboard, kas, laporan, pembelian, pengaturan, penjualan, stok
 
-BLUEPRINTS = [dashboard.bp, barang.bp, stok.bp, pembelian.bp, penjualan.bp, kas.bp, laporan.bp]
+BLUEPRINTS = [
+    dashboard.bp,
+    barang.bp,
+    stok.bp,
+    pembelian.bp,
+    penjualan.bp,
+    kas.bp,
+    laporan.bp,
+    pengaturan.bp,
+]

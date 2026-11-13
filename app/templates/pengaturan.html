@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon %}
+{% block judul %}Pengaturan{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Pengaturan &amp; backup</h1>
+  </div>
+</div>
+
+<div class="baris-kartu">
+  <section class="kartu lebar-1">
+    <h2>Nama usaha</h2>
+    <form method="post" action="{{ url_for('pengaturan.simpan_nama') }}" style="display:flex;flex-direction:column;gap:12px">
+      <label class="isian">Tampil di menu dan kop laporan
+        <input class="field" name="nama" value="{{ nama }}" required>
+      </label>
+      <button class="btn btn-utama" type="submit">Simpan</button>
+    </form>
+  </section>
+
+  <section class="kartu lebar-1">
+    <h2>Backup data</h2>
+    <p class="muted" style="margin:0">Unduh salinan seluruh data. Simpan di flashdisk atau Google Drive secara rutin.</p>
+    <a class="btn btn-utama" href="{{ url_for('pengaturan.backup') }}">{{ ikon('unduh') }}Unduh backup</a>
+    <p class="petunjuk" style="margin:0">Memulihkan: tutup aplikasi, ganti file <code style="word-break:break-all">{{ lokasi_db }}</code> dengan file backup (ubah namanya menjadi <code>usaha.db</code>), lalu jalankan lagi.</p>
+  </section>
+
+  <section class="kartu lebar-1">
+    <h2>Buka dari HP</h2>
+    {% if ip %}
+    <p style="margin:0">Sambungkan HP ke WiFi yang sama dengan komputer ini, lalu buka:</p>
+    <p class="tebal" style="margin:0;font-size:18px">http://{{ ip }}:{{ port }}</p>
+    <p class="petunjuk" style="margin:0">Bila tidak bisa dibuka, izinkan Python di Windows Firewall (jaringan privat).</p>
+    {% else %}
+    <p class="muted" style="margin:0">Komputer ini sedang tidak terhubung ke jaringan.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="kartu kartu-tabel" id="akun">
+  <div class="kartu-kepala"><div><h2>Akun kas, bank &amp; e-wallet</h2>
+    <p class="muted kecil" style="margin:4px 0 0">Tempat uang usaha disimpan. Penjualan non-tunai masuk ke akun bank/e-wallet.</p></div></div>
+  <div class="gulir">
+    <table class="tabel">
+      <thead><tr><th>Nama akun</th><th>Jenis</th><th class="kanan">Saldo</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for a in akun %}
+        <tr>
+          <td>
+            <form method="post" action="{{ url_for('pengaturan.ubah_akun', akun_id=a.id) }}" style="display:flex;gap:8px">
+              <input class="field" name="nama" value="{{ a.nama }}" aria-label="Nama akun" style="min-width:200px">
+              <button class="btn btn-kecil" type="submit">Ganti nama</button>
+            </form>
+          </td>
+          <td>{{ jenis_akun[a.jenis] }}</td>
+          <td class="kanan tebal">{{ a.saldo|rp }}</td>
+          <td>{% if a.aktif %}<span class="lencana l-hijau">Aktif</span>{% else %}<span class="lencana l-abu">Nonaktif</span>{% endif %}</td>
+          <td class="kanan">
+            <form method="post" action="{{ url_for('pengaturan.ubah_akun', akun_id=a.id) }}">
+              <input type="hidden" name="aksi" value="aktif">
+              <button class="btn btn-kecil" type="submit">{{ 'Nonaktifkan' if a.aktif else 'Aktifkan' }}</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="post" action="{{ url_for('pengaturan.tambah_akun') }}" class="pad" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding-top:8px;padding-bottom:12px">
+    <label class="isian" style="flex:1 1 220px">Akun baru
+      <input class="field" name="nama" placeholder="Contoh: Rekening BRI" required>
+    </label>
+    <label class="isian">Jenis
+      <select class="field" name="jenis">
+        {% for k, v in jenis_akun.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="btn" type="submit">{{ ikon('tambah') }}Tambah akun</button>
+  </form>
+</section>
+
+<section class="kartu" id="kategori">
+  <h2>Kategori biaya operasional</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    {% for k in kategori %}
+    <span class="lencana l-abu" style="display:inline-flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;font-size:13px">
+      {{ k.nama }}{% if k.dipakai %} <span class="muted">({{ k.dipakai }})</span>{% endif %}
+      {% if k.nama != kategori_admin %}
+      <form method="post" action="{{ url_for('pengaturan.hapus_kategori', kategori_id=k.id) }}" style="display:inline">
+        <button class="btn btn-ikon" style="width:28px;min-height:28px" type="submit" aria-label="Hapus kategori {{ k.nama }}">{{ ikon('hapus', 14) }}</button>
+      </form>
+      {% else %}<span style="width:6px"></span>{% endif %}
+    </span>
+    {% endfor %}
+  </div>
+  <form method="post" action="{{ url_for('pengaturan.tambah_kategori') }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <label class="isian" style="flex:1 1 220px;max-width:360px">Kategori baru
+      <input class="field" name="nama" placeholder="Contoh: Perawatan alat" required>
+    </label>
+    <button class="btn" type="submit">{{ ikon('tambah') }}Tambah kategori</button>
+  </form>
+</section>
+{% endblock %}
