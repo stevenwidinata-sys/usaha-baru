@@ -47,15 +47,52 @@
   </div>
 
   <aside class="kartu lebar-1">
-    <h2>Ringkasan</h2>
+    <h2>Pembayaran</h2>
     <div class="ringkasan-baris"><span class="muted">Jumlah barang</span><span class="angka" id="jumlah-item">0</span></div>
     <div class="ringkasan-total"><span class="tebal">Total</span><span class="angka" id="total">Rp 0</span></div>
     <span class="tersembunyi" id="subtotal"></span>
-    <label class="isian">Dibayar dari
+
+    <fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px">
+      <legend style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:8px">Cara bayar</legend>
+      <div class="metode-grid">
+        <label class="metode" style="flex-direction:column;gap:2px">
+          <input type="radio" name="cara_bayar" value="lunas" {% if data.cara_bayar != 'tempo' %}checked{% endif %}>
+          Lunas<span class="petunjuk">dibayar hari itu</span>
+        </label>
+        <label class="metode" style="flex-direction:column;gap:2px">
+          <input type="radio" name="cara_bayar" value="tempo" {% if data.cara_bayar == 'tempo' %}checked{% endif %}>
+          Tempo<span class="petunjuk">bayar belakangan</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div id="bagian-tempo" class="{{ '' if data.cara_bayar == 'tempo' else 'tersembunyi' }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:13px;font-weight:600;color:var(--ink-2)">Jangka waktu</span>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button class="pil" type="button" data-hari="7">7 hari</button>
+          <button class="pil" type="button" data-hari="14">14 hari</button>
+          <button class="pil" type="button" data-hari="30">30 hari</button>
+        </div>
+      </div>
+      <label class="isian">Jatuh tempo
+        <input class="field" type="date" id="jatuh_tempo" name="jatuh_tempo" value="{{ data.jatuh_tempo or '' }}">
+      </label>
+      <label class="isian">Uang muka / DP (opsional)
+        <input class="field" id="uang_muka" name="uang_muka" inputmode="numeric" value="{{ data.uang_muka or '' }}" placeholder="0">
+      </label>
+    </div>
+
+    <label class="isian"><span id="label-akun">{{ 'Uang muka dibayar dari' if data.cara_bayar == 'tempo' else 'Dibayar dari' }}</span>
       <select class="field" name="akun_id">
         {% for a in akun %}<option value="{{ a.id }}" {% if data.akun_id == a.id %}selected{% endif %}>{{ a.nama }}</option>{% endfor %}
       </select>
     </label>
+
+    <div id="kotak-hutang" class="{{ '' if data.cara_bayar == 'tempo' else 'tersembunyi' }}" style="background:var(--warn-soft);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;color:#6B3A00">
+      <div class="ringkasan-baris" style="font-weight:700;font-size:15px"><span>Jadi hutang</span><span class="angka" id="sisa-hutang">Rp 0</span></div>
+      <span class="kecil">Stok langsung bertambah. Hutang muncul di menu Hutang pemasok sampai dilunasi.</span>
+    </div>
     <label class="isian">Catatan (opsional)
       <input class="field" name="catatan" value="{{ data.catatan or '' }}">
     </label>

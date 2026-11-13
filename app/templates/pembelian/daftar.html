@@ -5,7 +5,7 @@
 <div class="kepala">
   <div class="kepala-judul">
     <h1>Pembelian barang</h1>
-    <p>{{ bulan|bulan_label }} · {{ rows|length }} transaksi · total {{ total|rp }}</p>
+    <p>{{ bulan|bulan_label }} · {{ rows|length }} transaksi</p>
   </div>
   <div class="aksi">
     {{ pilih_bulan(bulan, pilihan_bulan) }}
@@ -13,17 +13,32 @@
   </div>
 </div>
 
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-label">Total pembelian {{ bulan|bulan_label }}</span><span class="kpi-nilai">{{ total|rp }}</span>
+    <span class="kpi-ket">{% if total_tempo %}{{ total_tempo|rp }} di antaranya tempo{% else %}&nbsp;{% endif %}</span></div>
+  <div class="kpi"><span class="kpi-label">Hutang belum dibayar (semua)</span><span class="kpi-nilai {{ 'oranye' if hutang.total }}">{{ hutang.total|rp }}</span>
+    <span class="kpi-ket"><a href="{{ url_for('hutang.daftar') }}">{{ hutang.faktur }} faktur · lihat hutang pemasok</a></span></div>
+  {% if hutang.telat.faktur %}
+  <div class="kpi" style="background:#FDF4F3;border-color:#F5D3CF"><span class="kpi-label merah tebal">Lewat jatuh tempo</span><span class="kpi-nilai merah">{{ hutang.telat.jumlah|rp }}</span><span class="kpi-ket merah">{{ hutang.telat.faktur }} faktur</span></div>
+  {% endif %}
+</div>
+
 <section class="kartu kartu-tabel">
   <div class="gulir">
     <table class="tabel">
-      <thead><tr><th>Tanggal</th><th>No. faktur</th><th>Pemasok</th><th>Dibayar dari</th><th class="kanan">Jenis barang</th><th class="kanan">Total</th></tr></thead>
+      <thead><tr><th>Tanggal</th><th>No. faktur</th><th>Pemasok</th><th>Pembayaran</th><th class="kanan">Jenis barang</th><th class="kanan">Total</th></tr></thead>
       <tbody>
       {% for r in rows %}
         <tr class="klik">
           <td>{{ r.tanggal|tgl }}</td>
-          <td><a class="tebal" href="{{ url_for('pembelian.detail', pembelian_id=r.id) }}">{{ r.no_faktur or ('PB-%04d'|format(r.id)) }}</a></td>
+          <td><a class="tebal" href="{{ url_for('pembelian.detail', pembelian_id=r.id) }}">{{ r.nomor }}</a></td>
           <td>{{ r.pemasok or '–' }}</td>
-          <td>{{ r.akun }}</td>
+          <td>
+            {% if r.cara_bayar == 'lunas' %}<span class="lencana l-hijau">Lunas</span> <span class="muted kecil">{{ r.akun }}</span>
+            {% elif r.sisa <= 0 %}<span class="lencana l-hijau">Tempo · lunas</span>
+            {% elif r.jatuh_tempo < hari_ini %}<span class="lencana l-merah">Tempo · lewat {{ r.jatuh_tempo|tgl }}</span> <span class="muted kecil">sisa {{ r.sisa|rp }}</span>
+            {% else %}<span class="lencana l-oranye">Tempo · {{ r.jatuh_tempo|tgl }}</span> <span class="muted kecil">sisa {{ r.sisa|rp }}</span>{% endif %}
+          </td>
           <td class="kanan">{{ r.jumlah_baris }}</td>
           <td class="kanan tebal">{{ r.total|rp }}</td>
         </tr>

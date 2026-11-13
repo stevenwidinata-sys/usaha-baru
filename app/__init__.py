@@ -31,11 +31,16 @@ def create_app(test_config=None):
         metode=lambda m: util.METODE_BAYAR.get(m, m),
     )
 
+    from .routes import BLUEPRINTS
+    from .routes.hutang import jumlah_hutang_telat
+
     @app.context_processor
     def konteks_umum():
-        return {"nama_usaha": db.ambil_pengaturan(db.get_db(), "nama_usaha", "Usaha Baru")}
-
-    from .routes import BLUEPRINTS
+        conn = db.get_db()
+        return {
+            "nama_usaha": db.ambil_pengaturan(conn, "nama_usaha", "Usaha Baru"),
+            "hutang_telat": jumlah_hutang_telat(conn),
+        }
 
     for bp in BLUEPRINTS:
         app.register_blueprint(bp)

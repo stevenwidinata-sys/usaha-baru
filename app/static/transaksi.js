@@ -47,6 +47,10 @@
     setTeks('subtotal', rp(sub));
     setTeks('jumlah-item', item);
     setTeks('total', rp(total));
+    if (el('sisa-hutang')) {
+      var sisa = total - num(el('uang_muka').value);
+      setTeks('sisa-hutang', sisa > 0 ? rp(sisa) : 'Rp 0 (pilih Lunas)');
+    }
     if (mode === 'jual') {
       setTeks('hpp', rp(hpp));
       setTeks('laba', rp(total - hpp));
@@ -89,7 +93,36 @@
   });
   var tombolTambah = el('tambah-baris');
   if (tombolTambah) tombolTambah.addEventListener('click', tambahBaris);
-  ['diskon', 'diterima'].forEach(function (id) { if (el(id)) el(id).addEventListener('input', hitung); });
+  ['diskon', 'diterima', 'uang_muka'].forEach(function (id) { if (el(id)) el(id).addEventListener('input', hitung); });
+
+  // Cara bayar pembelian: lunas / tempo
+  function aturCaraBayar() {
+    var dipilih = form.querySelector('input[name="cara_bayar"]:checked');
+    if (!dipilih) return;
+    var tempo = dipilih.value === 'tempo';
+    el('bagian-tempo').classList.toggle('tersembunyi', !tempo);
+    el('kotak-hutang').classList.toggle('tersembunyi', !tempo);
+    setTeks('label-akun', tempo ? 'Uang muka dibayar dari' : 'Dibayar dari');
+    if (tempo && !el('jatuh_tempo').value) aturJatuhTempo(14);
+    hitung();
+  }
+  function aturJatuhTempo(hari) {
+    var tgl = form.querySelector('input[name="tanggal"]').value;
+    var d = tgl ? new Date(tgl + 'T00:00:00') : new Date();
+    d.setDate(d.getDate() + hari);
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    el('jatuh_tempo').value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    form.querySelectorAll('[data-hari]').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.dataset.hari === String(hari) ? 'true' : 'false');
+    });
+  }
+  form.querySelectorAll('input[name="cara_bayar"]').forEach(function (r) { r.addEventListener('change', aturCaraBayar); });
+  form.querySelectorAll('[data-hari]').forEach(function (b) {
+    b.addEventListener('click', function () { aturJatuhTempo(parseInt(b.dataset.hari, 10)); });
+  });
+  if (el('jatuh_tempo')) el('jatuh_tempo').addEventListener('input', function () {
+    form.querySelectorAll('[data-hari]').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
+  });
 
   // Metode bayar (penjualan)
   function aturMetode() {
@@ -119,5 +152,6 @@
 
   baris().forEach(function (row) { pilihBarang(row, false); });
   aturMetode();
+  aturCaraBayar();
   hitung();
 })();

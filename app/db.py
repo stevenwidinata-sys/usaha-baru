@@ -41,7 +41,28 @@ def close_db(_exc=None):
         conn.close()
 
 
+def _kolom(conn, tabel):
+    return {r[1] for r in conn.execute(f"PRAGMA table_info({tabel})")}
+
+
+def _migrasi(conn):
+    """Tambahkan kolom baru ke database lama sebelum schema.sql (yang membuat ulang view) dijalankan."""
+    kolom = _kolom(conn, "pembelian")
+    if not kolom:
+        return  # database baru, tabel dibuat lengkap oleh schema.sql
+    tambahan = {
+        "cara_bayar": "TEXT NOT NULL DEFAULT 'lunas' CHECK (cara_bayar IN ('lunas', 'tempo'))",
+        "jatuh_tempo": "TEXT",
+        "uang_muka": "INTEGER NOT NULL DEFAULT 0 CHECK (uang_muka >= 0)",
+    }
+    for nama, definisi in tambahan.items():
+        if nama not in kolom:
+            conn.execute(f"ALTER TABLE pembelian ADD COLUMN {nama} {definisi}")
+    conn.commit()
+
+
 def init_db(conn):
+    _migrasi(conn)
     with open(SCHEMA, encoding="utf-8") as f:
         conn.executescript(f.read())
     if conn.execute("SELECT COUNT(*) FROM akun").fetchone()[0] == 0:

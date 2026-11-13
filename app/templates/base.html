@@ -1,7 +1,8 @@
 {% from "_macros.html" import ikon %}
 {%- set p = request.path -%}
-{%- macro menu(href, nama, label, aktif=None) -%}
-<a href="{{ href }}" class="{{ 'aktif' if (aktif if aktif is not none else p.startswith(href)) }}">{{ ikon(nama) }}{{ label }}</a>
+{%- macro menu(href, nama, label, aktif=None, lencana=0) -%}
+<a href="{{ href }}" class="{{ 'aktif' if (aktif if aktif is not none else p.startswith(href)) }}">{{ ikon(nama) }}{{ label }}
+  {%- if lencana %}<span class="nav-lencana" aria-label="{{ lencana }} lewat jatuh tempo">{{ lencana }}</span>{% endif %}</a>
 {%- endmacro -%}
 <!doctype html>
 <html lang="id">
@@ -25,6 +26,7 @@
       <span class="grup">Transaksi</span>
       {{ menu('/penjualan', 'penjualan', 'Penjualan') }}
       {{ menu('/pembelian', 'pembelian', 'Pembelian') }}
+      {{ menu('/hutang', 'hutang', 'Hutang pemasok', lencana=hutang_telat) }}
       {{ menu('/biaya', 'biaya', 'Biaya operasional') }}
       {{ menu('/modal', 'modal', 'Modal & prive') }}
       {{ menu('/pindah-dana', 'pindah', 'Pindah dana') }}

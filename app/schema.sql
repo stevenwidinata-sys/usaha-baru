@@ -27,13 +27,28 @@ CREATE TABLE IF NOT EXISTS barang (
     aktif INTEGER NOT NULL DEFAULT 1
 );
 
+-- cara_bayar 'lunas': total dibayar dari akun_id pada tanggal pembelian.
+-- cara_bayar 'tempo': uang_muka (boleh 0) dibayar dari akun_id; sisanya jadi hutang sampai jatuh_tempo,
+--                      dilunasi lewat pembayaran_hutang.
 CREATE TABLE IF NOT EXISTS pembelian (
     id INTEGER PRIMARY KEY,
     tanggal TEXT NOT NULL,
     no_faktur TEXT,
     pemasok TEXT,
     akun_id INTEGER NOT NULL REFERENCES akun(id),
-    catatan TEXT
+    catatan TEXT,
+    cara_bayar TEXT NOT NULL DEFAULT 'lunas' CHECK (cara_bayar IN ('lunas', 'tempo')),
+    jatuh_tempo TEXT,
+    uang_muka INTEGER NOT NULL DEFAULT 0 CHECK (uang_muka >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS pembayaran_hutang (
+    id INTEGER PRIMARY KEY,
+    pembelian_id INTEGER NOT NULL REFERENCES pembelian(id) ON DELETE CASCADE,
+    tanggal TEXT NOT NULL,
+    jumlah INTEGER NOT NULL CHECK (jumlah > 0),
+    akun_id INTEGER NOT NULL REFERENCES akun(id),
+    keterangan TEXT
 );
 
 CREATE TABLE IF NOT EXISTS pembelian_item (
@@ -131,6 +146,7 @@ CREATE INDEX IF NOT EXISTS ix_pembelian_tanggal ON pembelian (tanggal);
 CREATE INDEX IF NOT EXISTS ix_penjualan_item_barang ON penjualan_item (barang_id);
 CREATE INDEX IF NOT EXISTS ix_pembelian_item_barang ON pembelian_item (barang_id);
 CREATE INDEX IF NOT EXISTS ix_biaya_tanggal ON biaya (tanggal);
+CREATE INDEX IF NOT EXISTS ix_bayar_hutang_pembelian ON pembayaran_hutang (pembelian_id);
 
 -- Semua uang masuk (+) dan keluar (-) per akun.
 DROP VIEW IF EXISTS v_kas;
@@ -147,7 +163,11 @@ CREATE VIEW v_kas AS
     UNION ALL
     SELECT b.tanggal, b.akun_id, 'pembelian',
            -(SELECT COALESCE(SUM(i.qty * i.harga_beli), 0) FROM pembelian_item i WHERE i.pembelian_id = b.id)
-    FROM pembelian b
+    FROM pembelian b WHERE b.cara_bayar = 'lunas'
+    UNION ALL
+    SELECT tanggal, akun_id, 'pembelian', -uang_muka FROM pembelian WHERE cara_bayar = 'tempo' AND uang_muka > 0
+    UNION ALL
+    SELECT tanggal, akun_id, 'bayar_hutang', -jumlah FROM pembayaran_hutang
     UNION ALL
     SELECT tanggal, akun_id, 'biaya', -jumlah FROM biaya
     UNION ALL

@@ -100,7 +100,8 @@ def arus_kas(conn, mulai, sampai):
     masuk = [(f"Penjualan · {label.lower() if kode != 'qris' else label}", n) for kode, label, n in per_metode]
     masuk.append(("Setoran modal", per_jenis.get("setoran", 0)))
     keluar = [
-        ("Pembelian barang", -per_jenis.get("pembelian", 0)),
+        ("Pembelian barang (lunas & uang muka)", -per_jenis.get("pembelian", 0)),
+        ("Pembayaran hutang pemasok", -per_jenis.get("bayar_hutang", 0)),
         ("Biaya operasional", -(per_jenis.get("biaya", 0) + per_jenis.get("biaya_admin", 0))),
         ("Prive (ambil untuk pribadi)", -per_jenis.get("prive", 0)),
     ]
@@ -143,7 +144,10 @@ def neraca(conn, per):
     sebelum = (date.fromisoformat(awal_tahun) - timedelta(days=1)).isoformat()
     laba_lalu = laba_rugi(conn, AWAL, sebelum)["laba_bersih"]
     total_modal = setoran + stok_awal - prive + laba_lalu + laba_berjalan
+    hutang = sum(h["sisa"] for h in daftar_hutang(conn, per=per))
     return {
+        "hutang": hutang,
+        "total_pasiva": hutang + total_modal,
         "per": per,
         "akun": akun,
         "persediaan": persediaan,
@@ -156,8 +160,63 @@ def neraca(conn, per):
         "laba_lalu": laba_lalu,
         "laba_berjalan": laba_berjalan,
         "total_modal": total_modal,
-        "selisih": total_aset - total_modal,
-        "seimbang": total_aset == total_modal,
+        "selisih": total_aset - hutang - total_modal,
+        "seimbang": total_aset == hutang + total_modal,
+    }
+
+
+def daftar_hutang(conn, per=None, acuan=None, termasuk_lunas=False):
+    """Pembelian tempo beserta sisa hutang per tanggal `per`; status dihitung terhadap tanggal `acuan`."""
+    per = per or "9999-12-31"
+    acuan = date.fromisoformat(acuan or util.hari_ini())
+    rows = conn.execute(
+        "SELECT p.id, p.tanggal, p.no_faktur, p.pemasok, p.jatuh_tempo, p.uang_muka, "
+        "(SELECT COALESCE(SUM(qty * harga_beli), 0) FROM pembelian_item WHERE pembelian_id = p.id) AS total, "
+        "(SELECT COALESCE(SUM(jumlah), 0) FROM pembayaran_hutang WHERE pembelian_id = p.id AND tanggal <= ?) "
+        "AS terbayar FROM pembelian p WHERE p.cara_bayar = 'tempo' AND p.tanggal <= ? "
+        "ORDER BY p.jatuh_tempo, p.id",
+        (per, per),
+    ).fetchall()
+    hasil = []
+    for r in rows:
+        d = dict(r)
+        d["nomor"] = d["no_faktur"] or f"PB-{d['id']:04d}"
+        d["dibayar"] = d["uang_muka"] + d["terbayar"]
+        d["sisa"] = d["total"] - d["dibayar"]
+        if d["sisa"] <= 0 and not termasuk_lunas:
+            continue
+        hari = (date.fromisoformat(d["jatuh_tempo"]) - acuan).days
+        d["hari"] = hari
+        if d["sisa"] <= 0:
+            d["status"], d["keterangan"] = "lunas", "Lunas"
+        elif hari < 0:
+            d["status"], d["keterangan"] = "telat", f"Terlambat {-hari} hari"
+        elif hari <= 7:
+            d["status"] = "dekat"
+            d["keterangan"] = {0: "Hari ini", 1: "Besok"}.get(hari, f"{hari} hari lagi")
+        else:
+            d["status"], d["keterangan"] = "aman", f"{hari} hari lagi"
+        hasil.append(d)
+    return hasil
+
+
+def ringkasan_hutang(hutang):
+    belum = [h for h in hutang if h["sisa"] > 0]
+    per_pemasok = {}
+    for h in belum:
+        nama = h["pemasok"] or "Tanpa nama pemasok"
+        per_pemasok[nama] = per_pemasok.get(nama, 0) + h["sisa"]
+
+    def bagian(status):
+        xs = [h for h in belum if h["status"] == status]
+        return {"jumlah": sum(h["sisa"] for h in xs), "faktur": len(xs)}
+
+    return {
+        "total": sum(h["sisa"] for h in belum),
+        "faktur": len(belum),
+        "telat": bagian("telat"),
+        "dekat": bagian("dekat"),
+        "per_pemasok": sorted(per_pemasok.items(), key=lambda kv: -kv[1]),
     }
 
 

@@ -1,5 +1,6 @@
 """Operasi tulis transaksi yang memengaruhi stok. Tidak melakukan commit; pemanggil yang commit/rollback."""
 from .inventory import recalc_banyak, stok_barang
+from .util import rupiah
 
 
 class InputTidakValid(ValueError):
@@ -22,21 +23,57 @@ def _barang_ids(conn, tabel, kolom, induk_id):
 
 # ---------- Pembelian ----------
 
+def _cek_tempo(conn, data, total, pembelian_id):
+    """Validasi cara bayar. Mengembalikan (cara_bayar, jatuh_tempo, uang_muka) yang dirapikan."""
+    cara = data.get("cara_bayar") or "lunas"
+    terbayar = 0
+    if pembelian_id:
+        terbayar = conn.execute(
+            "SELECT COALESCE(SUM(jumlah), 0) FROM pembayaran_hutang WHERE pembelian_id = ?", (pembelian_id,)
+        ).fetchone()[0]
+    if cara == "lunas":
+        if terbayar:
+            raise InputTidakValid(
+                "Pembelian ini sudah punya pembayaran hutang. Hapus pembayarannya dulu sebelum mengubah ke lunas."
+            )
+        return "lunas", None, 0
+    if cara != "tempo":
+        raise InputTidakValid("Cara bayar tidak dikenal.")
+    jatuh_tempo = data.get("jatuh_tempo")
+    if not jatuh_tempo:
+        raise InputTidakValid("Isi tanggal jatuh tempo.")
+    if jatuh_tempo < data["tanggal"]:
+        raise InputTidakValid("Jatuh tempo tidak boleh sebelum tanggal pembelian.")
+    uang_muka = data.get("uang_muka") or 0
+    if uang_muka < 0 or uang_muka >= total:
+        raise InputTidakValid("Uang muka harus kurang dari total pembelian. Kalau dibayar penuh, pilih Lunas.")
+    if total - uang_muka < terbayar:
+        raise InputTidakValid(
+            f"Sisa hutang jadi lebih kecil dari yang sudah dibayar ({rupiah(terbayar)}). Periksa kembali."
+        )
+    return "tempo", jatuh_tempo, uang_muka
+
+
 def simpan_pembelian(conn, data, items, pembelian_id=None):
     _cek_items(items)
+    total = sum(it["qty"] * it["harga"] for it in items)
+    cara, jatuh_tempo, uang_muka = _cek_tempo(conn, data, total, pembelian_id)
+    nilai = (data["tanggal"], data.get("no_faktur"), data.get("pemasok"), data["akun_id"], data.get("catatan"),
+             cara, jatuh_tempo, uang_muka)
     lama = set()
     if pembelian_id:
         lama = _barang_ids(conn, "pembelian_item", "pembelian_id", pembelian_id)
         conn.execute(
-            "UPDATE pembelian SET tanggal = ?, no_faktur = ?, pemasok = ?, akun_id = ?, catatan = ? WHERE id = ?",
-            (data["tanggal"], data.get("no_faktur"), data.get("pemasok"), data["akun_id"], data.get("catatan"),
-             pembelian_id),
+            "UPDATE pembelian SET tanggal = ?, no_faktur = ?, pemasok = ?, akun_id = ?, catatan = ?, "
+            "cara_bayar = ?, jatuh_tempo = ?, uang_muka = ? WHERE id = ?",
+            (*nilai, pembelian_id),
         )
         conn.execute("DELETE FROM pembelian_item WHERE pembelian_id = ?", (pembelian_id,))
     else:
         pembelian_id = conn.execute(
-            "INSERT INTO pembelian (tanggal, no_faktur, pemasok, akun_id, catatan) VALUES (?, ?, ?, ?, ?)",
-            (data["tanggal"], data.get("no_faktur"), data.get("pemasok"), data["akun_id"], data.get("catatan")),
+            "INSERT INTO pembelian (tanggal, no_faktur, pemasok, akun_id, catatan, cara_bayar, jatuh_tempo, uang_muka) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            nilai,
         ).lastrowid
     conn.executemany(
         "INSERT INTO pembelian_item (pembelian_id, barang_id, qty, harga_beli) VALUES (?, ?, ?, ?)",
@@ -50,6 +87,46 @@ def hapus_pembelian(conn, pembelian_id):
     ids = _barang_ids(conn, "pembelian_item", "pembelian_id", pembelian_id)
     conn.execute("DELETE FROM pembelian WHERE id = ?", (pembelian_id,))
     recalc_banyak(conn, ids)
+
+
+# ---------- Hutang pemasok ----------
+
+def sisa_hutang(conn, pembelian_id):
+    row = conn.execute(
+        "SELECT p.cara_bayar, p.uang_muka, "
+        "(SELECT COALESCE(SUM(qty * harga_beli), 0) FROM pembelian_item WHERE pembelian_id = p.id) AS total, "
+        "(SELECT COALESCE(SUM(jumlah), 0) FROM pembayaran_hutang WHERE pembelian_id = p.id) AS terbayar "
+        "FROM pembelian p WHERE p.id = ?",
+        (pembelian_id,),
+    ).fetchone()
+    if row is None or row["cara_bayar"] != "tempo":
+        return 0
+    return row["total"] - row["uang_muka"] - row["terbayar"]
+
+
+def bayar_hutang(conn, pembelian_id, tanggal, jumlah, akun_id, keterangan=None):
+    pb = conn.execute("SELECT tanggal, cara_bayar FROM pembelian WHERE id = ?", (pembelian_id,)).fetchone()
+    if pb is None or pb["cara_bayar"] != "tempo":
+        raise InputTidakValid("Pembelian ini bukan pembelian tempo.")
+    if not tanggal or tanggal < pb["tanggal"]:
+        raise InputTidakValid("Tanggal bayar tidak boleh sebelum tanggal pembelian.")
+    sisa = sisa_hutang(conn, pembelian_id)
+    if sisa <= 0:
+        raise InputTidakValid("Hutang ini sudah lunas.")
+    if not jumlah or jumlah <= 0:
+        raise InputTidakValid("Jumlah bayar harus lebih dari 0.")
+    if jumlah > sisa:
+        raise InputTidakValid(f"Jumlah bayar melebihi sisa hutang ({rupiah(sisa)}).")
+    return conn.execute(
+        "INSERT INTO pembayaran_hutang (pembelian_id, tanggal, jumlah, akun_id, keterangan) VALUES (?, ?, ?, ?, ?)",
+        (pembelian_id, tanggal, jumlah, akun_id, keterangan),
+    ).lastrowid
+
+
+def hapus_pembayaran_hutang(conn, pembayaran_id):
+    row = conn.execute("SELECT pembelian_id FROM pembayaran_hutang WHERE id = ?", (pembayaran_id,)).fetchone()
+    conn.execute("DELETE FROM pembayaran_hutang WHERE id = ?", (pembayaran_id,))
+    return row["pembelian_id"] if row else None
 
 
 # ---------- Penjualan ----------

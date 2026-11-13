@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, tombol_hapus %}
+{% block judul %}Hutang pemasok{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Hutang pemasok</h1>
+    <p>Pembelian tempo yang belum lunas, diurutkan dari jatuh tempo terdekat · hari ini {{ hari_ini|tgl }}</p>
+  </div>
+  <div class="aksi">
+    <a class="pil {{ 'aktif' if semua }}" href="{{ url_for('hutang.daftar', semua=None if semua else '1') }}">Tampilkan yang sudah lunas</a>
+    <a class="btn btn-utama" href="{{ url_for('pembelian.baru') }}">{{ ikon('tambah') }}Pembelian baru</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-label">Total hutang</span><span class="kpi-nilai">{{ ringkasan.total|rp }}</span>
+    <span class="kpi-ket">{{ ringkasan.faktur }} faktur · {{ ringkasan.per_pemasok|length }} pemasok</span></div>
+  <div class="kpi" {% if ringkasan.telat.faktur %}style="background:#FDF4F3;border-color:#F5D3CF"{% endif %}>
+    <span class="kpi-label {{ 'merah tebal' if ringkasan.telat.faktur }}">Lewat jatuh tempo</span>
+    <span class="kpi-nilai {{ 'merah' if ringkasan.telat.faktur }}">{{ ringkasan.telat.jumlah|rp }}</span>
+    <span class="kpi-ket {{ 'merah' if ringkasan.telat.faktur }}">{{ ringkasan.telat.faktur }} faktur</span></div>
+  <div class="kpi" {% if ringkasan.dekat.faktur %}style="background:#FBF8F1;border-color:#F0E3C6"{% endif %}>
+    <span class="kpi-label {{ 'oranye tebal' if ringkasan.dekat.faktur }}">Jatuh tempo 7 hari ke depan</span>
+    <span class="kpi-nilai {{ 'oranye' if ringkasan.dekat.faktur }}">{{ ringkasan.dekat.jumlah|rp }}</span>
+    <span class="kpi-ket {{ 'oranye' if ringkasan.dekat.faktur }}">{{ ringkasan.dekat.faktur }} faktur</span></div>
+</div>
+
+<div class="baris-kartu">
+  <section class="kartu kartu-tabel lebar-2">
+    <div class="gulir">
+      <table class="tabel">
+        <thead><tr><th>Jatuh tempo</th><th>Faktur · pemasok</th><th class="kanan">Total</th><th class="kanan">Sudah dibayar</th><th class="kanan">Sisa</th><th><span class="tersembunyi">Aksi</span></th></tr></thead>
+        <tbody>
+        {% for h in hutang %}
+          <tr>
+            <td>
+              <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+                <span class="tebal">{{ h.jatuh_tempo|tgl }}</span>
+                {% if h.status == 'telat' %}<span class="lencana l-merah">{{ h.keterangan }}</span>
+                {% elif h.status == 'dekat' %}<span class="lencana l-oranye">{{ h.keterangan }}</span>
+                {% elif h.status == 'lunas' %}<span class="lencana l-hijau">Lunas</span>
+                {% else %}<span class="kecil muted">{{ h.keterangan }}</span>{% endif %}
+              </div>
+            </td>
+            <td><div style="display:flex;flex-direction:column;gap:2px">
+              <a class="tebal" href="{{ url_for('pembelian.detail', pembelian_id=h.id) }}">{{ h.nomor }}</a>
+              <span class="kecil muted">{{ h.pemasok or 'Tanpa nama pemasok' }} · dibeli {{ h.tanggal|tgl }}</span>
+            </div></td>
+            <td class="kanan">{{ h.total|rp }}</td>
+            <td class="kanan muted">{{ h.dibayar|rp }}</td>
+            <td class="kanan tebal">{{ h.sisa|rp }}</td>
+            <td class="kanan">
+              {% if h.sisa > 0 %}
+              <a class="btn btn-kecil {{ 'btn-utama' if pilihan and pilihan.id == h.id }}" href="{{ url_for('hutang.daftar', pilih=h.id, semua='1' if semua else None) }}#bayar">Bayar</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="kosong">Tidak ada hutang. Semua pembelian tempo sudah lunas.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if ringkasan.per_pemasok %}
+    <div class="pad" style="display:flex;flex-direction:column;gap:8px;padding-top:6px;padding-bottom:12px">
+      <span class="tebal kecil">Per pemasok</span>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        {% for nama, jumlah in ringkasan.per_pemasok %}
+        <span class="angka" style="font-size:13px;padding:6px 12px;border-radius:999px;background:var(--bg)">{{ nama }} · <b>{{ jumlah|rp }}</b></span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  {% if pilihan %}
+  <aside class="kartu lebar-1" id="bayar">
+    <div>
+      <h2>Bayar hutang</h2>
+      <span class="muted kecil">{{ pilihan.nomor }} · {{ pilihan.pemasok or 'Tanpa nama pemasok' }}</span>
+    </div>
+    <div class="ringkasan-baris" style="padding:12px 14px;background:var(--bg);border-radius:10px;align-items:baseline">
+      <span class="muted">Sisa hutang</span><span class="angka tebal" style="font-size:20px">{{ pilihan.sisa|rp }}</span>
+    </div>
+    <form method="post" action="{{ url_for('hutang.bayar', pembelian_id=pilihan.id) }}" style="display:flex;flex-direction:column;gap:12px">
+      <label class="isian">Tanggal bayar
+        <input class="field" type="date" name="tanggal" value="{{ hari_ini if hari_ini >= pilihan.tanggal else pilihan.tanggal }}" required>
+      </label>
+      <label class="isian">Jumlah dibayar
+        <input class="field" name="jumlah" inputmode="numeric" value="{{ pilihan.sisa }}" required>
+        <span class="petunjuk">Boleh dicicil. Isi sebagian kalau belum bisa lunas.</span>
+      </label>
+      <label class="isian">Dibayar dari
+        <select class="field" name="akun_id">
+          {% for a in akun %}<option value="{{ a.id }}">{{ a.nama }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="isian">Keterangan (opsional)
+        <input class="field" name="keterangan" placeholder="Contoh: transfer cicilan ke-2">
+      </label>
+      <button class="btn btn-utama btn-besar" type="submit">Simpan pembayaran</button>
+    </form>
+    <div style="display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid var(--line)">
+      <span class="tebal kecil">Riwayat pembayaran</span>
+      {% if pilihan.dp and pilihan.dp.uang_muka %}
+      <div class="ringkasan-baris kecil"><span class="muted">{{ pilihan.dp.tanggal|tgl }} · Uang muka · {{ pilihan.dp.akun }}</span><span class="angka tebal">{{ pilihan.dp.uang_muka|rp }}</span></div>
+      {% endif %}
+      {% for p in riwayat %}
+      <div class="ringkasan-baris kecil" style="align-items:center">
+        <span class="muted">{{ p.tanggal|tgl }} · {{ p.akun }}</span>
+        <span style="display:flex;align-items:center;gap:4px"><span class="angka tebal">{{ p.jumlah|rp }}</span>{{ tombol_hapus(url_for('hutang.hapus_pembayaran', pembayaran_id=p.id), 'Hapus pembayaran ini?') }}</span>
+      </div>
+      {% endfor %}
+      {% if not riwayat and not (pilihan.dp and pilihan.dp.uang_muka) %}<span class="muted kecil">Belum ada pembayaran.</span>{% endif %}
+    </div>
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}
