@@ -5,11 +5,12 @@ Aplikasi pencatatan usaha berbasis web yang berjalan di komputer sendiri. Bisa d
 ## Fitur
 
 - **Barang & stok**: daftar barang, stok terkini, peringatan stok menipis, kartu stok per barang, stok awal, dan stok opname.
-- **Pembelian**: satu transaksi bisa berisi banyak barang. Stok dan harga modal langsung diperbarui.
+- **Pembelian**: satu transaksi bisa berisi banyak barang. Stok dan harga modal langsung diperbarui. Bisa dibayar **lunas** atau **tempo** (jatuh tempo + uang muka opsional).
+- **Hutang pemasok**: daftar pembelian tempo yang belum lunas, peringatan jatuh tempo/terlambat, dan pembayaran yang bisa dicicil.
 - **Penjualan**: form kasir multi-barang dengan pilihan bayar **tunai, transfer bank, QRIS/e-wallet, atau kartu debit**. Untuk tunai ada hitung kembalian, untuk non-tunai bisa dicatat potongan biaya admin.
 - **Harga modal (HPP) rata-rata tertimbang**, dihitung otomatis. Transaksi yang diedit atau bertanggal mundur tetap menghasilkan angka yang benar. Penjualan yang melebihi stok ditolak.
 - **Biaya operasional** per kategori, **modal & prive**, dan **pindah dana** antar akun (kas tunai, bank, e-wallet).
-- **Laporan**: laba rugi bulanan & tahunan, arus kas, dan neraca (dengan pengecekan seimbang). Semua laporan bisa dicetak atau disimpan sebagai PDF, dan diunduh sebagai CSV untuk Excel.
+- **Laporan**: laba rugi bulanan & tahunan, arus kas, dan neraca dengan hutang usaha (dengan pengecekan seimbang). Semua laporan bisa dicetak atau disimpan sebagai PDF, dan diunduh sebagai CSV untuk Excel.
 - **Dashboard** dan **backup** data dengan sekali klik.
 
 ## Menjalankan
@@ -56,4 +57,4 @@ Struktur singkat:
 | `app/templates/`, `app/static/` | Tampilan |
 | `tests/` | Tes otomatis (pytest) |
 
-Batasan saat ini: semua transaksi dianggap lunas (belum ada hutang/piutang) dan belum ada PPN.
+Batasan saat ini: penjualan selalu dianggap lunas (belum ada piutang) dan belum ada PPN.
