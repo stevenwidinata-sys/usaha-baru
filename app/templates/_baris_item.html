@@ -1,0 +1,29 @@
+{% from "_macros.html" import ikon %}
+{# Satu baris barang di form transaksi. mode: 'jual' | 'beli' #}
+{% macro baris_item(item, barang, mode) -%}
+<tr class="baris-item">
+  <td>
+    <select class="field sel-barang" name="barang_id" aria-label="Barang">
+      <option value="">Pilih barang…</option>
+      {% for b in barang %}
+      <option value="{{ b.id }}"
+              data-harga="{{ b.harga_jual if mode == 'jual' else b.harga_beli }}"
+              data-stok="{{ b.tersedia if mode == 'jual' else b.stok }}"
+              data-hpp="{{ b.hpp }}" data-satuan="{{ b.satuan }}"
+              {% if item.barang_id == b.id %}selected{% endif %}>{{ b.kode }} · {{ b.nama }}</option>
+      {% endfor %}
+    </select>
+    <div class="info-stok petunjuk" style="margin-top:4px"></div>
+  </td>
+  <td>
+    <div class="stepper">
+      <button class="step" type="button" data-step="-1" aria-label="Kurangi jumlah">{{ ikon('kurang', 16) }}</button>
+      <input class="field qty" name="qty" inputmode="numeric" value="{{ item.qty }}" aria-label="Jumlah">
+      <button class="step" type="button" data-step="1" aria-label="Tambah jumlah">{{ ikon('tambah', 16) }}</button>
+    </div>
+  </td>
+  <td><input class="field sel-harga harga" name="harga" inputmode="numeric" value="{{ item.harga }}" aria-label="Harga {{ 'jual' if mode == 'jual' else 'beli' }}" placeholder="0"></td>
+  <td class="kanan tebal subtotal">Rp 0</td>
+  <td class="kanan"><button class="btn btn-ikon hapus-baris" type="button" aria-label="Hapus baris">{{ ikon('hapus', 16) }}</button></td>
+</tr>
+{%- endmacro %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, pilih_bulan %}
+{% block judul %}Pembelian{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Pembelian barang</h1>
+    <p>{{ bulan|bulan_label }} · {{ rows|length }} transaksi · total {{ total|rp }}</p>
+  </div>
+  <div class="aksi">
+    {{ pilih_bulan(bulan, pilihan_bulan) }}
+    <a class="btn btn-utama" href="{{ url_for('pembelian.baru') }}">{{ ikon('tambah') }}Pembelian baru</a>
+  </div>
+</div>
+
+<section class="kartu kartu-tabel">
+  <div class="gulir">
+    <table class="tabel">
+      <thead><tr><th>Tanggal</th><th>No. faktur</th><th>Pemasok</th><th>Dibayar dari</th><th class="kanan">Jenis barang</th><th class="kanan">Total</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr class="klik">
+          <td>{{ r.tanggal|tgl }}</td>
+          <td><a class="tebal" href="{{ url_for('pembelian.detail', pembelian_id=r.id) }}">{{ r.no_faktur or ('PB-%04d'|format(r.id)) }}</a></td>
+          <td>{{ r.pemasok or '–' }}</td>
+          <td>{{ r.akun }}</td>
+          <td class="kanan">{{ r.jumlah_baris }}</td>
+          <td class="kanan tebal">{{ r.total|rp }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="kosong">Belum ada pembelian di bulan ini.</td></tr>
+      {% endfor %}
+      </tbody>
+      {% if rows %}<tfoot><tr><td>Total</td><td></td><td></td><td></td><td></td><td class="kanan">{{ total|rp }}</td></tr></tfoot>{% endif %}
+    </table>
+  </div>
+</section>
+{% endblock %}

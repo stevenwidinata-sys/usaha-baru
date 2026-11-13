@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon %}
+{% block judul %}Pembelian{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <a class="kembali" href="{{ url_for('pembelian.daftar', bulan=pb.tanggal[:7]) }}">← Kembali ke daftar pembelian</a>
+    <h1>Pembelian {{ pb.no_faktur or ('PB-%04d'|format(pb.id)) }}</h1>
+    <p>{{ pb.tanggal|tgl_panjang }}{% if pb.pemasok %} · {{ pb.pemasok }}{% endif %} · dibayar dari {{ pb.akun }}</p>
+  </div>
+  <div class="aksi">
+    <a class="btn" href="{{ url_for('pembelian.edit', pembelian_id=pb.id) }}">{{ ikon('edit') }}Edit</a>
+    <form method="post" action="{{ url_for('pembelian.hapus', pembelian_id=pb.id) }}" onsubmit="return confirm('Hapus pembelian ini? Stok akan dikurangi.')">
+      <button class="btn btn-bahaya" type="submit">{{ ikon('hapus') }}Hapus</button>
+    </form>
+  </div>
+</div>
+
+<section class="kartu kartu-tabel">
+  <div class="gulir">
+    <table class="tabel">
+      <thead><tr><th>Barang</th><th class="kanan">Jumlah</th><th class="kanan">Harga beli</th><th class="kanan">Subtotal</th></tr></thead>
+      <tbody>
+      {% for i in items %}
+        <tr>
+          <td><a href="{{ url_for('barang.kartu', barang_id=i.barang_id, bulan=pb.tanggal[:7]) }}" style="color:inherit">{{ i.nama }}</a></td>
+          <td class="kanan">{{ i.qty|angka }} {{ i.satuan }}</td>
+          <td class="kanan">{{ i.harga_beli|rp }}</td>
+          <td class="kanan tebal">{{ (i.qty * i.harga_beli)|rp }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr><td>Total</td><td></td><td></td><td class="kanan">{{ pb.total|rp }}</td></tr></tfoot>
+    </table>
+  </div>
+  {% if pb.catatan %}<p class="pad muted" style="margin:0;padding-bottom:12px">Catatan: {{ pb.catatan }}</p>{% endif %}
+</section>
+{% endblock %}
