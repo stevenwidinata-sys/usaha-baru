@@ -1,2 +1,4 @@
 """Daftar blueprint halaman."""
-BLUEPRINTS = []
+from . import barang, stok
+
+BLUEPRINTS = [barang.bp, stok.bp]

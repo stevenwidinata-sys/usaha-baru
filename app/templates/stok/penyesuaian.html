@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, tombol_hapus %}
+{% block judul %}Stok awal & opname{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Stok awal &amp; opname</h1>
+    <p>Catat stok yang sudah ada sebelum memakai aplikasi, atau sesuaikan dengan hasil hitung fisik.</p>
+  </div>
+</div>
+
+<div class="baris-kartu">
+  <section class="kartu lebar-1">
+    <div class="tab-grup" role="tablist">
+      <a class="tab {{ 'aktif' if jenis != 'stok_awal' }}" href="{{ url_for('stok.daftar', jenis='opname') }}">Stok opname</a>
+      <a class="tab {{ 'aktif' if jenis == 'stok_awal' }}" href="{{ url_for('stok.daftar', jenis='stok_awal') }}">Stok awal</a>
+    </div>
+    <form method="post" style="display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" name="jenis" value="{{ jenis }}">
+      <label class="isian">Barang
+        <select class="field" name="barang_id" required>
+          <option value="">Pilih barang…</option>
+          {% for b in barang %}<option value="{{ b.id }}">{{ b.nama }} (stok {{ b.stok }} {{ b.satuan }})</option>{% endfor %}
+        </select>
+      </label>
+      <label class="isian">Tanggal
+        <input class="field" type="date" name="tanggal" value="{{ hari_ini }}" required>
+      </label>
+      {% if jenis == 'stok_awal' %}
+        <label class="isian">Jumlah
+          <input class="field" name="qty" inputmode="numeric" required placeholder="0">
+        </label>
+        <label class="isian">Harga modal per satuan (Rp)
+          <input class="field" name="nilai_satuan" inputmode="numeric" required placeholder="0">
+          <span class="petunjuk">Nilai stok awal dicatat sebagai modal pemilik.</span>
+        </label>
+      {% else %}
+        <label class="isian">Stok fisik hasil hitung
+          <input class="field" name="stok_fisik" inputmode="numeric" required placeholder="0">
+          <span class="petunjuk">Selisih dengan stok di sistem dicatat otomatis dan masuk laba rugi sebagai selisih stok.</span>
+        </label>
+      {% endif %}
+      <label class="isian">Keterangan (opsional)
+        <input class="field" name="alasan" placeholder="{{ 'Contoh: rusak, kedaluwarsa, hilang' if jenis != 'stok_awal' else 'Contoh: stok saat mulai pakai aplikasi' }}">
+      </label>
+      <button class="btn btn-utama" type="submit">Simpan</button>
+    </form>
+  </section>
+
+  <section class="kartu kartu-tabel lebar-2">
+    <div class="kartu-kepala"><h2>Riwayat penyesuaian</h2></div>
+    <div class="gulir">
+      <table class="tabel">
+        <thead><tr><th>Tanggal</th><th>Barang</th><th>Jenis</th><th class="kanan">Jumlah</th><th class="kanan">Nilai</th><th>Keterangan</th><th></th></tr></thead>
+        <tbody>
+        {% for r in riwayat %}
+          <tr>
+            <td>{{ r.tanggal|tgl }}</td>
+            <td><a href="{{ url_for('barang.kartu', barang_id=r.barang_id, bulan=r.tanggal[:7]) }}">{{ r.nama }}</a></td>
+            <td>{% if r.jenis == 'stok_awal' %}<span class="lencana l-biru">Stok awal</span>{% else %}<span class="lencana l-oranye">Opname</span>{% endif %}</td>
+            <td class="kanan tebal {{ 'merah' if r.qty < 0 else 'hijau' }}">{{ '+' if r.qty > 0 else '−' }}{{ r.qty|abs }} {{ r.satuan }}</td>
+            <td class="kanan">{{ (r.qty|abs * (r.harga_mutasi or 0))|rp }}</td>
+            <td class="wrap-teks muted">{{ r.alasan or '' }}</td>
+            <td class="kanan">{{ tombol_hapus(url_for('stok.hapus', penyesuaian_id=r.id), 'Hapus penyesuaian ini?') }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="kosong">Belum ada penyesuaian stok.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

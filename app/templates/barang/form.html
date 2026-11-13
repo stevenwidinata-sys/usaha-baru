@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon %}
+{% block judul %}{{ 'Barang baru' if baru else 'Edit barang' }}{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <a class="kembali" href="{{ url_for('barang.daftar') }}">← Kembali ke stok barang</a>
+    <h1>{{ 'Barang baru' if baru else 'Edit ' ~ barang.nama }}</h1>
+  </div>
+</div>
+
+<form method="post" class="baris-kartu">
+  <section class="kartu lebar-3">
+    <h2>Data barang</h2>
+    <div class="form-grid">
+      <label class="isian">Kode barang
+        <input class="field" name="kode" required value="{{ data.kode or '' }}">
+      </label>
+      <label class="isian">Satuan
+        <input class="field" name="satuan" placeholder="pcs, kg, dus…" value="{{ data.satuan or '' }}">
+      </label>
+    </div>
+    <label class="isian">Nama barang
+      <input class="field" name="nama" required value="{{ data.nama or '' }}" placeholder="Contoh: Beras Premium 5 kg">
+    </label>
+    <div class="form-grid">
+      <label class="isian">Harga jual (Rp)
+        <input class="field" name="harga_jual" inputmode="numeric" value="{{ data.harga_jual or '' }}" placeholder="0">
+      </label>
+      <label class="isian">Stok minimum
+        <input class="field" name="stok_minimum" inputmode="numeric" value="{{ data.stok_minimum or '' }}" placeholder="0">
+        <span class="petunjuk">Muncul peringatan "perlu diisi" bila stok di bawah angka ini.</span>
+      </label>
+    </div>
+  </section>
+
+  {% if baru %}
+  <section class="kartu lebar-1">
+    <h2>Stok awal (opsional)</h2>
+    <p class="muted" style="margin:0">Isi bila barang ini sudah ada di toko sebelum mulai memakai aplikasi. Nilainya dicatat sebagai modal pemilik.</p>
+    <label class="isian">Jumlah stok awal
+      <input class="field" name="stok_awal" inputmode="numeric" value="{{ data.stok_awal or '' }}" placeholder="0">
+    </label>
+    <label class="isian">Harga modal per satuan (Rp)
+      <input class="field" name="modal_awal" inputmode="numeric" value="{{ data.modal_awal or '' }}" placeholder="0">
+    </label>
+    <label class="isian">Per tanggal
+      <input class="field" type="date" name="tanggal_awal" value="{{ data.tanggal_awal or hari_ini }}">
+    </label>
+  </section>
+  {% endif %}
+
+  <div style="flex-basis:100%;display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-utama btn-besar" type="submit">Simpan barang</button>
+    <a class="btn btn-besar" href="{{ url_for('barang.daftar') }}">Batal</a>
+  </div>
+</form>
+
+{% if not baru %}
+<section class="kartu">
+  <h2>Lainnya</h2>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <form method="post" action="{{ url_for('barang.ubah_aktif', barang_id=barang.id) }}">
+      <button class="btn" type="submit">{{ 'Nonaktifkan barang' if barang.aktif else 'Aktifkan kembali' }}</button>
+    </form>
+    <form method="post" action="{{ url_for('barang.hapus', barang_id=barang.id) }}" onsubmit="return confirm('Hapus barang ini?')">
+      <button class="btn btn-bahaya" type="submit">{{ ikon('hapus') }}Hapus barang</button>
+    </form>
+  </div>
+  <p class="petunjuk" style="margin:0">Barang nonaktif tidak muncul di form transaksi. Barang yang sudah punya transaksi tidak bisa dihapus.</p>
+</section>
+{% endif %}
+{% endblock %}

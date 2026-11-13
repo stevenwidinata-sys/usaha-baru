@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, lencana_status %}
+{% block judul %}Stok barang{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Stok barang</h1>
+    <p>Stok dan harga modal dihitung otomatis dari pembelian, penjualan, dan stok opname.</p>
+  </div>
+  <div class="aksi">
+    <a class="btn" href="{{ url_for('stok.daftar') }}">Stok awal &amp; opname</a>
+    <a class="btn btn-utama" href="{{ url_for('barang.baru') }}">{{ ikon('tambah') }}Barang baru</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-label">Jenis barang aktif</span><span class="kpi-nilai">{{ jumlah_aktif }}</span></div>
+  <div class="kpi"><span class="kpi-label">Nilai persediaan (harga modal)</span><span class="kpi-nilai">{{ total_nilai|rp }}</span></div>
+  <div class="kpi"><span class="kpi-label">Perlu diisi ulang</span><span class="kpi-nilai {{ 'oranye' if jumlah_perlu_isi }}">{{ jumlah_perlu_isi }} barang</span></div>
+</div>
+
+<section class="kartu kartu-tabel">
+  <form method="get" class="pad" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between">
+    <input type="hidden" name="f" value="{{ filter_ }}">
+    <label class="isian" style="flex:1 1 260px;max-width:380px">Cari barang
+      <input class="field" type="search" name="q" value="{{ q }}" placeholder="Nama atau kode barang…">
+    </label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center" role="group" aria-label="Saring status stok">
+      <a class="pil {{ 'aktif' if filter_ != 'isi' }}" href="{{ url_for('barang.daftar', q=q, nonaktif='1' if tampil_nonaktif else None) }}">Semua ({{ jumlah_aktif }})</a>
+      <a class="pil {{ 'aktif' if filter_ == 'isi' }}" href="{{ url_for('barang.daftar', q=q, f='isi') }}">Perlu diisi ({{ jumlah_perlu_isi }})</a>
+      <a class="pil {{ 'aktif' if tampil_nonaktif }}" href="{{ url_for('barang.daftar', q=q, nonaktif=None if tampil_nonaktif else '1') }}">Tampilkan nonaktif</a>
+    </div>
+  </form>
+  <div class="gulir">
+    <table class="tabel">
+      <thead><tr>
+        <th>Kode</th><th>Nama barang</th><th class="kanan">Stok</th><th class="kanan">Harga modal (rata-rata)</th>
+        <th class="kanan">Harga jual</th><th class="kanan">Margin</th><th class="kanan">Nilai persediaan</th><th>Status</th><th><span class="tersembunyi">Aksi</span></th>
+      </tr></thead>
+      <tbody>
+      {% for b in barang %}
+        <tr class="klik">
+          <td class="muted">{{ b.kode }}</td>
+          <td><a href="{{ url_for('barang.kartu', barang_id=b.id) }}" style="color:inherit;font-weight:600;text-decoration:none">{{ b.nama }}</a>
+            {% if not b.aktif %}<span class="lencana l-abu">Nonaktif</span>{% endif %}</td>
+          <td class="kanan"><b>{{ b.stok|angka }}</b> <span class="muted">{{ b.satuan }}</span></td>
+          <td class="kanan">{{ b.hpp|rp if b.hpp else '–' }}</td>
+          <td class="kanan">{{ b.harga_jual|rp }}</td>
+          <td class="kanan muted">{{ '%.1f%%'|format(b.margin * 100)|replace('.', ',') if b.margin is not none else '–' }}</td>
+          <td class="kanan tebal">{{ b.nilai|rp }}</td>
+          <td>{{ lencana_status(b.status, b.stok_minimum) }}</td>
+          <td class="kanan">
+            <a class="btn btn-ikon" href="{{ url_for('barang.edit', barang_id=b.id) }}" aria-label="Edit {{ b.nama }}">{{ ikon('edit', 16) }}</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="9" class="kosong">Belum ada barang. <a href="{{ url_for('barang.baru') }}">Tambah barang pertama</a>.</td></tr>
+      {% endfor %}
+      </tbody>
+      {% if barang %}
+      <tfoot><tr><td></td><td>Total</td><td></td><td></td><td></td><td></td><td class="kanan">{{ total_tampil|rp }}</td><td></td><td></td></tr></tfoot>
+      {% endif %}
+    </table>
+  </div>
+</section>
+{% endblock %}

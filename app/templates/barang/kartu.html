@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, lencana_status, pilih_bulan %}
+{% block judul %}Kartu stok {{ barang.nama }}{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <a class="kembali" href="{{ url_for('barang.daftar') }}">← Kembali ke stok barang</a>
+    <h1>{{ barang.nama }}</h1>
+    <p>{{ barang.kode }} · {{ barang.satuan }} {% if stok %}· {{ lencana_status(stok.status, barang.stok_minimum) }}{% endif %}</p>
+  </div>
+  <div class="aksi">
+    {{ pilih_bulan(bulan, pilihan_bulan) }}
+    <a class="btn" href="{{ url_for('barang.edit', barang_id=barang.id) }}">{{ ikon('edit') }}Edit barang</a>
+  </div>
+</div>
+
+{% if stok %}
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-label">Stok saat ini</span><span class="kpi-nilai">{{ stok.stok|angka }} {{ barang.satuan }}</span></div>
+  <div class="kpi"><span class="kpi-label">Harga modal rata-rata</span><span class="kpi-nilai">{{ stok.hpp|rp }}</span></div>
+  <div class="kpi"><span class="kpi-label">Harga jual</span><span class="kpi-nilai">{{ barang.harga_jual|rp }}</span></div>
+  <div class="kpi"><span class="kpi-label">Nilai persediaan</span><span class="kpi-nilai">{{ stok.nilai|rp }}</span></div>
+</div>
+{% endif %}
+
+<section class="kartu kartu-tabel">
+  <div class="kartu-kepala">
+    <div>
+      <h2>Kartu stok · {{ bulan|bulan_label }}</h2>
+      <p class="muted kecil" style="margin:4px 0 0">Harga modal dihitung ulang setiap ada barang masuk.</p>
+    </div>
+  </div>
+  <div class="gulir">
+    <table class="tabel">
+      <thead><tr>
+        <th>Tanggal</th><th>Keterangan</th><th class="kanan">Masuk</th><th class="kanan">Keluar</th><th class="kanan">Harga</th>
+        <th class="kanan">Saldo</th><th class="kanan">Harga modal rata-rata</th><th class="kanan">Nilai persediaan</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>{{ (bulan ~ '-01')|tgl }}</td><td class="muted">Saldo awal bulan</td>
+          <td class="kanan">–</td><td class="kanan">–</td><td class="kanan">–</td>
+          <td class="kanan tebal">{{ kartu.saldo_awal|angka }}</td>
+          <td class="kanan">{{ kartu.hpp_awal|rp if kartu.saldo_awal else '–' }}</td>
+          <td class="kanan">{{ kartu.nilai_awal|rp }}</td>
+        </tr>
+        {% for m in kartu.mutasi %}
+        <tr>
+          <td>{{ m.tanggal|tgl }}</td>
+          <td class="wrap-teks">
+            {% if m.sumber == 'penjualan' %}<a href="{{ url_for('penjualan.detail', penjualan_id=m.ref_id) }}">{{ m.keterangan }}</a>
+            {% elif m.sumber == 'pembelian' %}<a href="{{ url_for('pembelian.detail', pembelian_id=m.ref_id) }}">{{ m.keterangan }}</a>
+            {% else %}{{ m.keterangan }}{% endif %}
+          </td>
+          <td class="kanan {{ 'hijau tebal' if m.masuk }}">{{ '+' ~ m.masuk if m.masuk else '–' }}</td>
+          <td class="kanan {{ 'merah tebal' if m.keluar }}">{{ '−' ~ m.keluar if m.keluar else '–' }}</td>
+          <td class="kanan">{{ m.harga|rp }}</td>
+          <td class="kanan tebal">{{ m.saldo_qty|angka }}</td>
+          <td class="kanan">{{ m.hpp_rata|rp }}</td>
+          <td class="kanan">{{ m.nilai_persediaan|rp }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="kosong">Tidak ada mutasi stok di bulan ini.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="pad petunjuk" style="margin:0;padding-bottom:12px">Harga modal rata-rata = (nilai stok lama + nilai pembelian baru) ÷ jumlah stok. Barang yang terjual dicatat dengan harga modal rata-rata saat itu.</p>
+</section>
+{% endblock %}
