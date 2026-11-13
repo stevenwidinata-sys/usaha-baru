@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, tombol_hapus %}
+{% block judul %}Modal & prive{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Modal &amp; prive</h1>
+    <p>Setoran modal = uang pribadi yang dimasukkan ke usaha. Prive = uang usaha yang diambil untuk keperluan pribadi.</p>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-label">Total setoran modal</span><span class="kpi-nilai">{{ setoran|rp }}</span></div>
+  <div class="kpi"><span class="kpi-label">Nilai stok awal</span><span class="kpi-nilai">{{ stok_awal|rp }}</span><span class="kpi-ket">Dihitung sebagai modal</span></div>
+  <div class="kpi"><span class="kpi-label">Total prive</span><span class="kpi-nilai">{{ prive|rp }}</span></div>
+</div>
+
+<div class="baris-kartu">
+  <section class="kartu lebar-1">
+    <h2>Catat transaksi modal</h2>
+    <form method="post" style="display:flex;flex-direction:column;gap:14px">
+      <div class="metode-grid">
+        <label class="metode"><input type="radio" name="jenis" value="setoran" checked>Setoran modal</label>
+        <label class="metode"><input type="radio" name="jenis" value="prive">Prive</label>
+      </div>
+      <label class="isian">Tanggal
+        <input class="field" type="date" name="tanggal" value="{{ hari_ini }}" required>
+      </label>
+      <label class="isian">Jumlah (Rp)
+        <input class="field" name="jumlah" inputmode="numeric" required placeholder="0">
+      </label>
+      <label class="isian">Akun
+        <select class="field" name="akun_id">
+          {% for a in akun %}<option value="{{ a.id }}">{{ a.nama }}</option>{% endfor %}
+        </select>
+        <span class="petunjuk">Saat mulai memakai aplikasi, catat saldo awal tiap akun sebagai setoran modal.</span>
+      </label>
+      <label class="isian">Keterangan (opsional)
+        <input class="field" name="keterangan" placeholder="Contoh: saldo awal kas">
+      </label>
+      <button class="btn btn-utama" type="submit">Simpan</button>
+    </form>
+  </section>
+
+  <section class="kartu kartu-tabel lebar-2">
+    <div class="gulir">
+      <table class="tabel">
+        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Akun</th><th>Keterangan</th><th class="kanan">Jumlah</th><th></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.tanggal|tgl }}</td>
+            <td>{% if r.jenis == 'setoran' %}<span class="lencana l-hijau">Setoran</span>{% else %}<span class="lencana l-abu">Prive</span>{% endif %}</td>
+            <td>{{ r.akun }}</td>
+            <td class="wrap-teks muted">{{ r.keterangan or '' }}</td>
+            <td class="kanan tebal">{{ '+' if r.jenis == 'setoran' else '−' }} {{ r.jumlah|rp }}</td>
+            <td class="kanan">{{ tombol_hapus(url_for('kas.hapus_modal', modal_id=r.id)) }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="kosong">Belum ada transaksi modal.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

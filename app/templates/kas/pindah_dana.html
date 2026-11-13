@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, tombol_hapus %}
+{% block judul %}Pindah dana{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Pindah dana antar akun</h1>
+    <p>Misalnya setor uang tunai ke bank, atau tarik saldo e-wallet ke rekening. Tidak memengaruhi laba.</p>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  {% for a, s in saldo %}
+  <div class="kpi"><span class="kpi-label">{{ a.nama }}</span><span class="kpi-nilai {{ 'merah' if s < 0 }}">{{ s|rp }}</span><span class="kpi-ket">Saldo saat ini</span></div>
+  {% endfor %}
+</div>
+
+<div class="baris-kartu">
+  <section class="kartu lebar-1">
+    <h2>Catat pindah dana</h2>
+    <form method="post" style="display:flex;flex-direction:column;gap:14px">
+      <label class="isian">Tanggal
+        <input class="field" type="date" name="tanggal" value="{{ hari_ini }}" required>
+      </label>
+      <label class="isian">Dari akun
+        <select class="field" name="dari_akun_id">
+          {% for a in akun %}<option value="{{ a.id }}">{{ a.nama }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="isian">Ke akun
+        <select class="field" name="ke_akun_id">
+          {% for a in akun %}<option value="{{ a.id }}" {% if loop.index == 2 %}selected{% endif %}>{{ a.nama }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="isian">Jumlah (Rp)
+        <input class="field" name="jumlah" inputmode="numeric" required placeholder="0">
+      </label>
+      <label class="isian">Keterangan (opsional)
+        <input class="field" name="keterangan">
+      </label>
+      <button class="btn btn-utama" type="submit">Simpan</button>
+    </form>
+  </section>
+
+  <section class="kartu kartu-tabel lebar-2">
+    <div class="gulir">
+      <table class="tabel">
+        <thead><tr><th>Tanggal</th><th>Dari</th><th>Ke</th><th>Keterangan</th><th class="kanan">Jumlah</th><th></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.tanggal|tgl }}</td><td>{{ r.dari }}</td><td>{{ r.ke }}</td>
+            <td class="wrap-teks muted">{{ r.keterangan or '' }}</td>
+            <td class="kanan tebal">{{ r.jumlah|rp }}</td>
+            <td class="kanan">{{ tombol_hapus(url_for('kas.hapus_pindah', pindah_id=r.id)) }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="kosong">Belum ada pindah dana.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

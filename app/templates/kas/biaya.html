@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, pilih_bulan, tombol_hapus %}
+{% block judul %}Biaya operasional{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Biaya operasional</h1>
+    <p>{{ bulan|bulan_label }} · total {{ (total + admin)|rp }}</p>
+  </div>
+  <div class="aksi">{{ pilih_bulan(bulan, pilihan_bulan) }}</div>
+</div>
+
+<div class="baris-kartu">
+  <section class="kartu lebar-1">
+    <h2>Catat biaya</h2>
+    <form method="post" style="display:flex;flex-direction:column;gap:14px">
+      <label class="isian">Tanggal
+        <input class="field" type="date" name="tanggal" value="{{ hari_ini }}" required>
+      </label>
+      <label class="isian">Kategori
+        <select class="field" name="kategori" required>
+          {% for k in kategori %}<option>{{ k }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="isian">Jumlah (Rp)
+        <input class="field" name="jumlah" inputmode="numeric" required placeholder="0">
+      </label>
+      <label class="isian">Dibayar dari
+        <select class="field" name="akun_id">
+          {% for a in akun %}<option value="{{ a.id }}">{{ a.nama }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="isian">Keterangan (opsional)
+        <input class="field" name="keterangan" placeholder="Contoh: token listrik Oktober">
+      </label>
+      <button class="btn btn-utama" type="submit">Simpan biaya</button>
+      <a class="petunjuk" href="{{ url_for('pengaturan.index') }}#kategori">Atur kategori biaya</a>
+    </form>
+  </section>
+
+  <div class="lebar-2" style="display:flex;flex-direction:column;gap:16px;min-width:0">
+    {% if per_kategori or admin %}
+    <section class="kartu">
+      <h2>Per kategori</h2>
+      {% set total_semua = total + admin %}
+      {% for nama, jumlah in per_kategori %}
+      <div class="komposisi">
+        <div class="komposisi-label"><span>{{ nama }}</span><span class="angka">{{ jumlah|rp }}</span></div>
+        <div class="batang"><div style="width: {{ (jumlah / total_semua * 100)|round(1) }}%"></div></div>
+      </div>
+      {% endfor %}
+      {% if admin %}
+      <div class="komposisi">
+        <div class="komposisi-label"><span>Biaya admin pembayaran <span class="muted kecil">(otomatis dari penjualan non-tunai)</span></span><span class="angka">{{ admin|rp }}</span></div>
+        <div class="batang"><div style="width: {{ (admin / total_semua * 100)|round(1) }}%"></div></div>
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="kartu kartu-tabel">
+      <div class="gulir">
+        <table class="tabel">
+          <thead><tr><th>Tanggal</th><th>Kategori</th><th>Keterangan</th><th>Dibayar dari</th><th class="kanan">Jumlah</th><th></th></tr></thead>
+          <tbody>
+          {% for r in rows %}
+            <tr>
+              <td>{{ r.tanggal|tgl }}</td>
+              <td><span class="lencana l-oranye">{{ r.kategori }}</span></td>
+              <td class="wrap-teks">{{ r.keterangan or '' }}</td>
+              <td class="muted">{{ r.akun }}</td>
+              <td class="kanan tebal">{{ r.jumlah|rp }}</td>
+              <td class="kanan" style="white-space:nowrap">
+                <a class="btn btn-ikon" href="{{ url_for('kas.edit_biaya', biaya_id=r.id) }}" aria-label="Edit">{{ ikon('edit', 16) }}</a>
+                {{ tombol_hapus(url_for('kas.hapus_biaya', biaya_id=r.id), 'Hapus biaya ini?') }}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="kosong">Belum ada biaya di bulan ini.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

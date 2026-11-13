@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block judul %}Edit biaya{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <a class="kembali" href="{{ url_for('kas.biaya', bulan=edit.tanggal[:7]) }}">← Kembali ke biaya</a>
+    <h1>Edit biaya</h1>
+  </div>
+</div>
+<section class="kartu" style="max-width:520px">
+  <form method="post" style="display:flex;flex-direction:column;gap:14px">
+    <label class="isian">Tanggal
+      <input class="field" type="date" name="tanggal" value="{{ edit.tanggal }}" required>
+    </label>
+    <label class="isian">Kategori
+      <select class="field" name="kategori" required>
+        {% for k in kategori %}<option {% if k == edit.kategori %}selected{% endif %}>{{ k }}</option>{% endfor %}
+        {% if edit.kategori not in kategori %}<option selected>{{ edit.kategori }}</option>{% endif %}
+      </select>
+    </label>
+    <label class="isian">Jumlah (Rp)
+      <input class="field" name="jumlah" inputmode="numeric" value="{{ edit.jumlah }}" required>
+    </label>
+    <label class="isian">Dibayar dari
+      <select class="field" name="akun_id">
+        {% for a in akun %}<option value="{{ a.id }}" {% if a.id == edit.akun_id %}selected{% endif %}>{{ a.nama }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="isian">Keterangan (opsional)
+      <input class="field" name="keterangan" value="{{ edit.keterangan or '' }}">
+    </label>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-utama" type="submit">Simpan perubahan</button>
+      <a class="btn" href="{{ url_for('kas.biaya', bulan=edit.tanggal[:7]) }}">Batal</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
