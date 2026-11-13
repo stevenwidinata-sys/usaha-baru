@@ -12,6 +12,7 @@ Aplikasi pencatatan usaha berbasis web yang berjalan di komputer sendiri. Bisa d
 - **Biaya operasional** per kategori, **modal & prive**, dan **pindah dana** antar akun (kas tunai, bank, e-wallet).
 - **Laporan**: laba rugi bulanan & tahunan, arus kas, dan neraca dengan hutang usaha (dengan pengecekan seimbang). Semua laporan bisa dicetak atau disimpan sebagai PDF, dan diunduh sebagai CSV untuk Excel.
 - **Dashboard** dan **backup** data dengan sekali klik.
+- **Login dengan password**, dan bisa **dipasang di layar utama HP** (PWA).
 
 ## Menjalankan
 
@@ -30,6 +31,13 @@ python -m venv .venv
 Saat berjalan, terminal menampilkan alamat untuk dibuka dari HP, misalnya `http://192.168.1.10:5000`. Kalau tidak bisa dibuka dari HP, izinkan Python di Windows Firewall untuk jaringan privat.
 
 Data tersimpan di `data/usaha.db`. Unduh backup secara rutin dari menu **Pengaturan & backup**.
+
+Saat pertama dibuka, aplikasi meminta kamu membuat **password**. Password ini dipakai setiap kali masuk.
+
+## Online tanpa laptop menyala
+
+Ikuti panduan [docs/ONLINE.md](docs/ONLINE.md) untuk menjalankan aplikasi di PythonAnywhere (paket gratis).
+Setelah online, aplikasi bisa dipasang di layar utama HP seperti aplikasi biasa.
 
 ## Langkah awal
 
