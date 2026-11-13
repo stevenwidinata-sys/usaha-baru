@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, pilih_bulan, tombol_laporan %}
+{% block judul %}Laporan laba rugi{% endblock %}
+{% macro pct(x) %}{{ ('%.1f%%'|format(x * 100))|replace('.', ',') if x is not none else '–' }}{% endmacro %}
+{% macro ubah(x) %}{% if x is none %}<span class="muted">–</span>{% else %}<span class="angka tebal {{ 'hijau' if x >= 0 else 'merah' }}">{{ '+' if x >= 0 else '' }}{{ pct(x) }}</span>{% endif %}{% endmacro %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Laporan laba rugi</h1>
+    <p>Berapa untung usaha setelah dikurangi modal barang dan biaya.</p>
+  </div>
+  {{ tombol_laporan(url_for('laporan.laba_rugi', format='csv', **request.args)) }}
+</div>
+
+<div class="no-print" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between">
+  <div class="tab-grup">
+    <a class="tab {{ 'aktif' if mode == 'bulanan' }}" href="{{ url_for('laporan.laba_rugi') }}">Bulanan</a>
+    <a class="tab {{ 'aktif' if mode == 'tahunan' }}" href="{{ url_for('laporan.laba_rugi', mode='tahunan') }}">Tahunan</a>
+  </div>
+  {% if mode == 'bulanan' %}
+    {{ pilih_bulan(bulan, pilihan_bulan, label='Bulan') }}
+  {% else %}
+  <form method="get" class="filter">
+    <input type="hidden" name="mode" value="tahunan">
+    <label class="isian">Tahun
+      <select class="field" name="tahun" onchange="this.form.submit()">
+        {% for t in pilihan_tahun %}<option {% if t == tahun %}selected{% endif %}>{{ t }}</option>{% endfor %}
+      </select>
+    </label>
+  </form>
+  {% endif %}
+</div>
+
+{% if mode == 'bulanan' %}
+<div class="baris-kartu">
+  <section class="kartu laporan lebar-3">
+    <div class="laporan-kop">
+      <span class="usaha">{{ nama_usaha }}</span>
+      <span class="judul">Laba rugi · {{ lr.mulai|tgl_panjang }} – {{ lr.sampai|tgl_panjang }}</span>
+    </div>
+    <div class="lb lb-judul">Pendapatan</div>
+    <div class="lb lb-sub"><span>Penjualan kotor</span><span>{{ lr.penjualan_kotor|rp }}</span></div>
+    <div class="lb lb-sub"><span>Diskon penjualan</span><span>{{ lr.diskon|rpk }}</span></div>
+    <div class="lb lb-total"><span>Penjualan bersih</span><span>{{ lr.penjualan_bersih|rp }}</span></div>
+    <div class="lb"><span>Harga pokok penjualan (modal barang terjual)</span><span>{{ lr.hpp|rpk }}</span></div>
+    <div class="lb lb-sorot"><span>Laba kotor <span class="muted kecil" style="font-weight:500">· margin {{ pct(lr.margin_kotor) }}</span></span><span>{{ lr.laba_kotor|rp }}</span></div>
+    <div class="lb lb-judul">Biaya operasional</div>
+    {% for nama, jumlah in lr.biaya %}
+    <div class="lb lb-sub"><span>{{ nama }}</span><span>{{ jumlah|rp }}</span></div>
+    {% else %}
+    <div class="lb lb-sub muted"><span>Belum ada biaya</span><span>Rp 0</span></div>
+    {% endfor %}
+    <div class="lb lb-total"><span>Total biaya operasional</span><span>{{ lr.total_biaya|rpk }}</span></div>
+    {% if lr.selisih_stok %}
+    <div class="lb"><span>Selisih stok opname {{ '(barang rusak/hilang)' if lr.selisih_stok < 0 else '(kelebihan stok)' }}</span>
+      <span>{{ lr.selisih_stok|rpk if lr.selisih_stok < 0 else lr.selisih_stok|rp }}</span></div>
+    {% endif %}
+    <div class="lb lb-akhir {{ 'rugi' if lr.laba_bersih < 0 }}">
+      <span>{{ 'Laba bersih' if lr.laba_bersih >= 0 else 'Rugi bersih' }} <span class="kecil" style="font-weight:500">· margin {{ pct(lr.margin_bersih) }}</span></span>
+      <span>{{ lr.laba_bersih|rp }}</span>
+    </div>
+  </section>
+
+  <div class="lebar-2 no-print" style="display:flex;flex-direction:column;gap:16px;min-width:0">
+    <section class="kartu">
+      <h2>Dibanding {{ lalu.mulai[:7]|bulan_label }}</h2>
+      <div class="ringkasan-baris"><span class="muted">Penjualan bersih</span>{{ ubah(perubahan(lr.penjualan_bersih, lalu.penjualan_bersih)) }}</div>
+      <div class="ringkasan-baris"><span class="muted">Laba bersih</span>{{ ubah(perubahan(lr.laba_bersih, lalu.laba_bersih)) }}</div>
+      <div class="ringkasan-baris"><span class="muted">Biaya operasional</span>{{ ubah(perubahan(lr.total_biaya, lalu.total_biaya)) }}</div>
+      <div class="ringkasan-baris"><span class="muted">Jumlah transaksi</span><span class="angka tebal">{{ lr.transaksi }} <span class="muted" style="font-weight:400">(sebelumnya {{ lalu.transaksi }})</span></span></div>
+    </section>
+    {% if lr.total_biaya %}
+    <section class="kartu">
+      <h2>Ke mana biaya pergi</h2>
+      {% for nama, jumlah in lr.biaya %}
+      <div class="komposisi">
+        <div class="komposisi-label"><span>{{ nama }}</span><span class="muted">{{ pct(jumlah / lr.total_biaya) }}</span></div>
+        <div class="batang"><div style="width: {{ (jumlah / lr.total_biaya * 100)|round(1) }}%"></div></div>
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+</div>
+
+{% else %}
+{% set t = data.total %}
+<div class="kpi-grid">
+  <div class="kpi"><span class="kpi-label">Penjualan bersih {{ tahun }}</span><span class="kpi-nilai">{{ t.penjualan_bersih|rp }}</span></div>
+  <div class="kpi"><span class="kpi-label">Laba bersih {{ tahun }}</span><span class="kpi-nilai {{ 'hijau' if t.laba_bersih >= 0 else 'merah' }}">{{ t.laba_bersih|rp }}</span></div>
+  <div class="kpi"><span class="kpi-label">Rata-rata laba per bulan</span><span class="kpi-nilai">{{ (t.laba_bersih / (bulan_aktif or 1))|rp }}</span><span class="kpi-ket">dari {{ bulan_aktif }} bulan berjalan</span></div>
+</div>
+
+<section class="kartu kartu-tabel">
+  <div class="kartu-kepala"><h2>Laba rugi per bulan · {{ tahun }}</h2></div>
+  <div class="gulir">
+    <table class="tabel">
+      <thead><tr><th>Bulan</th><th class="kanan">Penjualan bersih</th><th class="kanan">HPP</th><th class="kanan">Laba kotor</th><th class="kanan">Biaya</th><th class="kanan">Laba bersih</th><th class="kanan">Margin</th><th class="no-print" style="width:22%"></th></tr></thead>
+      <tbody>
+      {% for b in data.bulan %}
+        {% set ada = b.transaksi or b.total_biaya or b.selisih_stok %}
+        <tr>
+          <td class="tebal"><a href="{{ url_for('laporan.laba_rugi', bulan=b.ym) }}" style="color:inherit">{{ b.nama }}</a></td>
+          <td class="kanan">{{ b.penjualan_bersih|rp if ada else '–' }}</td>
+          <td class="kanan muted">{{ b.hpp|rp if ada else '–' }}</td>
+          <td class="kanan">{{ b.laba_kotor|rp if ada else '–' }}</td>
+          <td class="kanan muted">{{ b.total_biaya|rp if ada else '–' }}</td>
+          <td class="kanan tebal {{ 'merah' if b.laba_bersih < 0 }}">{{ b.laba_bersih|rp if ada else '–' }}</td>
+          <td class="kanan muted">{{ pct(b.margin_bersih) if ada else '–' }}</td>
+          <td class="no-print"><div class="batang"><div style="width: {{ (b.laba_bersih|abs / maks * 100)|round(1) if ada else 0 }}%;{{ ' background:#D9776A' if b.laba_bersih < 0 }}"></div></div></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr>
+        <td>Total</td><td class="kanan">{{ t.penjualan_bersih|rp }}</td><td class="kanan">{{ t.hpp|rp }}</td><td class="kanan">{{ t.laba_kotor|rp }}</td>
+        <td class="kanan">{{ t.total_biaya|rp }}</td><td class="kanan">{{ t.laba_bersih|rp }}</td><td class="kanan">{{ pct(t.margin_bersih) }}</td><td class="no-print"></td>
+      </tr></tfoot>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

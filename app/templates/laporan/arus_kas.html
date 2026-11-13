@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, pilih_bulan, tombol_laporan %}
+{% block judul %}Arus kas{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Arus kas</h1>
+    <p>Uang masuk dan keluar di semua akun (kas tunai, bank, e-wallet).</p>
+  </div>
+  {{ tombol_laporan(url_for('laporan.arus_kas', format='csv', **request.args)) }}
+</div>
+
+<div class="no-print" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between">
+  <div class="tab-grup">
+    <a class="tab {{ 'aktif' if mode == 'bulanan' }}" href="{{ url_for('laporan.arus_kas') }}">Bulanan</a>
+    <a class="tab {{ 'aktif' if mode == 'tahunan' }}" href="{{ url_for('laporan.arus_kas', mode='tahunan') }}">Tahunan</a>
+  </div>
+  {% if mode == 'bulanan' %}
+    {{ pilih_bulan(bulan_dipilih, pilihan_bulan) }}
+  {% else %}
+  <form method="get" class="filter">
+    <input type="hidden" name="mode" value="tahunan">
+    <label class="isian">Tahun
+      <select class="field" name="tahun" onchange="this.form.submit()">
+        {% for t in pilihan_tahun %}<option {% if t == tahun %}selected{% endif %}>{{ t }}</option>{% endfor %}
+      </select>
+    </label>
+  </form>
+  {% endif %}
+</div>
+
+<div class="baris-kartu">
+  <section class="kartu laporan lebar-3">
+    <div class="laporan-kop">
+      <span class="usaha">{{ nama_usaha }}</span>
+      <span class="judul">Arus kas · {{ data.mulai|tgl_panjang }} – {{ data.sampai|tgl_panjang }}</span>
+    </div>
+    <div class="lb" style="font-weight:600;padding-top:12px"><span>Saldo awal ({{ data.mulai|tgl }})</span><span>{{ data.saldo_awal|rp }}</span></div>
+    <div class="lb-kepala">Uang masuk</div>
+    {% for nama, n in data.masuk %}<div class="lb lb-sub"><span>{{ nama }}</span><span>{{ n|rp }}</span></div>{% endfor %}
+    <div class="lb lb-total"><span>Total uang masuk</span><span class="hijau">{{ data.total_masuk|rp }}</span></div>
+    <div class="lb-kepala">Uang keluar</div>
+    {% for nama, n in data.keluar %}<div class="lb lb-sub"><span>{{ nama }}</span><span>{{ n|rpk }}</span></div>{% endfor %}
+    <div class="lb lb-total"><span>Total uang keluar</span><span>{{ data.total_keluar|rpk }}</span></div>
+    <div class="lb" style="font-weight:600;padding-top:14px"><span>Arus kas bersih</span>
+      <span class="{{ 'hijau' if data.bersih >= 0 else 'merah' }}">{{ ('+ ' if data.bersih >= 0 else '') ~ (data.bersih|rp) }}</span></div>
+    <div class="lb lb-akhir {{ 'rugi' if data.saldo_akhir < 0 }}"><span>Saldo akhir ({{ data.sampai|tgl }})</span><span>{{ data.saldo_akhir|rp }}</span></div>
+  </section>
+
+  <div class="lebar-2" style="display:flex;flex-direction:column;gap:16px;min-width:0">
+    <section class="kartu">
+      <h2>Saldo per akun ({{ data.sampai|tgl }})</h2>
+      {% for a in data.per_akun %}
+      <div class="ringkasan-baris" style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;align-items:center">
+        <span><span class="tebal">{{ a.nama }}</span><br><span class="muted kecil">{{ {'tunai':'Kas tunai','bank':'Bank','ewallet':'E-wallet'}[a.jenis] }}</span></span>
+        <span class="angka tebal {{ 'merah' if a.saldo < 0 }}">{{ a.saldo|rp }}</span>
+      </div>
+      {% endfor %}
+      <a class="kecil tebal no-print" href="{{ url_for('kas.pindah_dana') }}">Catat pindah dana antar akun</a>
+    </section>
+    {% if data.per_metode %}
+    <section class="kartu">
+      <h2>Penjualan per metode bayar</h2>
+      {% for m in data.per_metode %}
+      <div class="komposisi">
+        <div class="komposisi-label"><span>{{ m.label }}</span><span class="muted">{{ m.jumlah|rp }} · {{ ('%.1f%%'|format(m.porsi * 100))|replace('.', ',') }}</span></div>
+        <div class="batang"><div style="width: {{ (m.porsi * 100)|round(1) }}%"></div></div>
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

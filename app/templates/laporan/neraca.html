@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ikon, tombol_laporan %}
+{% block judul %}Neraca{% endblock %}
+{% block isi %}
+<div class="kepala">
+  <div class="kepala-judul">
+    <h1>Neraca</h1>
+    <p>Posisi harta usaha dan modal pemilik pada satu tanggal.</p>
+  </div>
+  {{ tombol_laporan(url_for('laporan.neraca', format='csv', tanggal=per)) }}
+</div>
+
+<form method="get" class="filter no-print" style="display:flex;gap:10px;align-items:flex-end">
+  <label class="isian">Per tanggal
+    <input class="field" type="date" name="tanggal" value="{{ per }}" onchange="this.form.submit()">
+  </label>
+  <noscript><button class="btn" type="submit">Tampilkan</button></noscript>
+</form>
+
+{% if data.seimbang %}
+<div class="pesan pesan-sukses">{{ ikon('cek') }}Seimbang: total aset sama dengan total modal ({{ data.total_aset|rp }})</div>
+{% else %}
+<div class="pesan pesan-galat">{{ ikon('peringatan') }}Tidak seimbang, selisih {{ data.selisih|rp }}. Periksa data transaksi.</div>
+{% endif %}
+
+<div class="laporan-kop" style="border:0;margin:0;padding:0">
+  <span class="usaha">{{ nama_usaha }}</span>
+  <span class="judul">Neraca per {{ per|tgl_panjang }}</span>
+</div>
+
+<div class="baris-kartu rentang">
+  <section class="kartu laporan lebar-1" style="flex-basis:380px">
+    <div class="laporan-kop"><span class="judul">Aset (harta usaha)</span></div>
+    {% for a in data.akun %}
+    <div class="lb"><span>{{ a.nama }}</span><span class="{{ 'merah' if a.saldo < 0 }}">{{ a.saldo|rp }}</span></div>
+    {% endfor %}
+    <div class="lb"><span>Persediaan barang <span class="muted kecil">(harga modal)</span></span><span>{{ data.persediaan|rp }}</span></div>
+    <div class="lb lb-total" style="margin-top:auto;font-weight:700;font-size:16px;padding-top:14px"><span>Total aset</span><span>{{ data.total_aset|rp }}</span></div>
+  </section>
+  <section class="kartu laporan lebar-1" style="flex-basis:380px">
+    <div class="laporan-kop"><span class="judul">Modal pemilik</span></div>
+    <div class="lb" style="font-weight:600"><span>Modal disetor</span><span>{{ data.modal_disetor|rp }}</span></div>
+    <div class="lb lb-sub"><span>Setoran uang</span><span>{{ data.setoran|rp }}</span></div>
+    <div class="lb lb-sub"><span>Stok awal</span><span>{{ data.stok_awal|rp }}</span></div>
+    {% if data.laba_lalu %}<div class="lb"><span>Laba tahun-tahun sebelumnya</span><span>{{ data.laba_lalu|rp }}</span></div>{% endif %}
+    <div class="lb"><span>Laba bersih {{ per[:4] }} (s.d. {{ per|tgl }})</span><span>{{ data.laba_berjalan|rp }}</span></div>
+    <div class="lb"><span>Prive (diambil pemilik)</span><span>{{ data.prive|rpk }}</span></div>
+    <div class="lb lb-total" style="margin-top:auto;font-weight:700;font-size:16px;padding-top:14px"><span>Total modal</span><span>{{ data.total_modal|rp }}</span></div>
+  </section>
+</div>
+<p class="petunjuk" style="margin:0">Neraca sederhana: belum ada hutang/piutang karena semua transaksi dicatat lunas.</p>
+{% endblock %}
