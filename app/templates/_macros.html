@@ -1,0 +1,61 @@
+{% set IKON = {
+  'dashboard': '<rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/>',
+  'penjualan': '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  'pembelian': '<path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/>',
+  'biaya': '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/>',
+  'modal': '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6.5V8M12 16v1.5"/>',
+  'pindah': '<path d="M4 8h14l-4-4M20 16H6l4 4"/>',
+  'stok': '<path d="M12 3 21 8l-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+  'opname': '<path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2"/><path d="m9 14 2 2 4-4"/>',
+  'labarugi': '<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  'neraca': '<path d="M12 4v16M8 20h8M5 8h14"/><path d="M5 8 2.5 14a2.5 2.5 0 0 0 5 0zM19 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/>',
+  'aruskas': '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  'pengaturan': '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  'tambah': '<path d="M12 5v14M5 12h14"/>',
+  'kurang': '<path d="M5 12h14"/>',
+  'hapus': '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  'edit': '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/>',
+  'cetak': '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
+  'unduh': '<path d="M12 4v11m-5-5 5 5 5-5M4 20h16"/>',
+  'cek': '<path d="m5 12 5 5 9-10"/>',
+  'peringatan': '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
+  'tunai': '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+  'transfer': '<path d="M3 10 12 4l9 6M5 10v8M19 10v8M9 10v8M15 10v8M3 20h18"/>',
+  'qris': '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M20 20h-3M14 20v.01"/>',
+  'debit': '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
+} %}
+
+{% macro ikon(nama, ukuran=18) -%}
+<svg width="{{ ukuran }}" height="{{ ukuran }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ IKON[nama]|safe }}</svg>
+{%- endmacro %}
+
+{% macro lencana_status(status, minimum=None) -%}
+{% if status == 'habis' %}<span class="lencana l-merah">Habis</span>
+{% elif status == 'menipis' %}<span class="lencana l-oranye">Menipis{% if minimum %} · min {{ minimum }}{% endif %}</span>
+{% else %}<span class="lencana l-hijau">Aman</span>{% endif %}
+{%- endmacro %}
+
+{% macro pilih_bulan(bulan, pilihan, nama='bulan', label='Periode') -%}
+<form method="get" class="filter">
+  {% for k, v in request.args.items() if k != nama %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+  <label class="isian">{{ label }}
+    <select class="field" name="{{ nama }}" onchange="this.form.submit()">
+      {% for ym, lbl in pilihan %}<option value="{{ ym }}" {% if ym == bulan %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+    </select>
+  </label>
+  <noscript><button class="btn" type="submit">Tampilkan</button></noscript>
+</form>
+{%- endmacro %}
+
+{% macro tombol_hapus(url, pesan='Hapus data ini?') -%}
+<form method="post" action="{{ url }}" onsubmit="return confirm('{{ pesan }}')" style="display:inline">
+  <button class="btn btn-ikon btn-bahaya" type="submit" aria-label="Hapus">{{ ikon('hapus', 16) }}</button>
+</form>
+{%- endmacro %}
+
+{% macro tombol_laporan(csv_url) -%}
+<div class="aksi no-print">
+  <button class="btn" type="button" onclick="window.print()">{{ ikon('cetak') }}Cetak / PDF</button>
+  <a class="btn" href="{{ csv_url }}">{{ ikon('unduh') }}Unduh CSV (Excel)</a>
+</div>
+{%- endmacro %}
